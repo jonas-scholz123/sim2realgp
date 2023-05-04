@@ -47,6 +47,8 @@ config = {
     "num_samples": 20,
     "sim_num_tasks_train": 2**14,
     "sim_num_tasks_val": 2**10,
+    "real_num_tasks_train": 2**10,
+    "real_num_tasks_val": 2**10,
     "rate": 3e-4,
     "num_epochs": 100,
     "dim_x": 1,

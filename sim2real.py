@@ -29,8 +29,8 @@ ensure_exists(train_plot_dir)
 
 gen_train, gen_cv, gens_eval = setup(
     config,
-    num_tasks_train=config["sim_num_tasks_train"],
-    num_tasks_val=config["sim_num_tasks_val"],
+    num_tasks_train=config["real_num_tasks_train"],
+    num_tasks_val=config["real_num_tasks_val"],
     lengthscale=config["lengthscale_sim"]
 )
 
