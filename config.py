@@ -1,4 +1,8 @@
 import stheno
+import warnings
+from matrix.util import ToDenseWarning
+
+warnings.filterwarnings("ignore", category=ToDenseWarning)
 
 config = {
     "default": {
@@ -67,22 +71,3 @@ elif dim_x == 2:
     # Since the PPU is reduced, we can also take off a layer of the UNet.
     config["unet_strides"] = config["unet_strides"][:-1]
     config["unet_channels"] = config["unet_channels"][:-1]
-
-model_str = config["model"]
-l_sim = config["lengthscale_sim"]
-noise = config["noise"]
-
-exp_dir = f"./outputs/x_{dim_x}_y_{dim_y}/{model_str}/l_sim_{l_sim:.3g}/noise_{noise:.3g}"
-config["exp_dir"] = exp_dir
-
-config["train_plot_dir"] = f"{exp_dir}/train_plots"
-
-sim_model_dir = f"{exp_dir}/models/sim"
-config["sim_model_dir"] = sim_model_dir
-config["sim_best_model_path"] = f"{sim_model_dir}/best.torch"
-config["sim_latest_model_path"] = f"{sim_model_dir}/latest.torch"
-
-tuned_model_dir = f"{exp_dir}/models/tuned"
-config["tuned_model_dir"] = tuned_model_dir
-config["tuned_best_model_path"] = f"{tuned_model_dir}/best.torch"
-config["tuned_latest_model_path"] = f"{tuned_model_dir}/latest.torch"

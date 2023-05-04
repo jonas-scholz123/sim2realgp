@@ -1,26 +1,20 @@
 #%%
 from functools import partial
 import warnings
+from tqdm import tqdm
 
 import neuralprocesses.torch as nps
 import numpy as np
 import torch
 import lab as B
-from matrix.util import ToDenseWarning
 
-from utils import ensure_exists
+from utils import ensure_exists, load_weights, save_model, get_exp_dir, get_paths
 from train import train, setup, evaluate
 from plot import visualise
 from config import config
 #%%
-warnings.filterwarnings("ignore", category=ToDenseWarning)
-
-train_plot_dir = config["train_plot_dir"]
-sim_model_dir = config["sim_model_dir"]
-exp_dir = config["exp_dir"]
-
-best_model_path = config["sim_best_model_path"]
-latest_model_path = config["sim_latest_model_path"]
+exp_dir = get_exp_dir(config)
+train_plot_dir, best_model_path, latest_model_path, sim_model_dir = get_paths(exp_dir)
 
 ensure_exists(train_plot_dir)
 ensure_exists(sim_model_dir)
@@ -63,7 +57,7 @@ fix_noise=None
 
 best_eval_lik = -np.infty
 
-for i in range(config["num_epochs"]):
+for i in tqdm(range(config["num_epochs"])):
     B.epsilon = config["epsilon_start"] if i == 0 else config["epsilon"]
 
     state, _ = train(
@@ -79,28 +73,13 @@ for i in range(config["num_epochs"]):
     state, val = evaluate(state, model, objective, gen_cv())
 
     # Save current model.
+    save_model(model, val, i + 1, latest_model_path)
     
-    torch.save(
-        {
-            "weights": model.state_dict(),
-            "objective": val,
-            "epoch": i + 1,
-        },
-        latest_model_path,
-    )
-
     # Check if the model is the new best. If so, save it.
     if val > best_eval_lik:
         print("New best model!")
         best_eval_lik = val
-        torch.save(
-            {
-                "weights": model.state_dict(),
-                "objective": val,
-                "epoch": i + 1,
-            },
-            best_model_path,
-        )
+        save_model(model, val, i + 1, best_model_path)
 
     # Visualise a few predictions by the model.
     for j in range(2):
