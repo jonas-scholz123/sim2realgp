@@ -18,11 +18,20 @@ config = {
     "num_heads": 8,
     "num_layers": 6,
     "unet_channels": (64,) * 6,
-    "unet_strides": (1,) + (2,) * 5,
+    # TODO: We should use a stride of 1 in the first layer, but for compatibility
+    #    reasons with the models we already trained, we keep it like this.
+    "unet_strides": (2,) * 6,
+    "conv_receptive_field": 4,
+    "margin": 0.1,
     "conv_channels": 64,
     "encoder_scales": None,
     "fullconvgnp_kernel_factor": 2,
     "mean_diff": None,
+    "transform": None,
+    "plot": {
+        1: {"range": (-2, 4), "axvline": [2]},
+        2: {"range": ((-2, 2), (-2, 2))},
+    },
     # Performance of the ConvGNP is sensitive to this parameter. Moreover, it
     # doesn't make sense to set it to a value higher of the last hidden layer of
     # the CNN architecture. We therefore set it to 64.
@@ -32,8 +41,8 @@ config = {
     "device": "cpu",
     "normalise_obj": True,
     "num_samples": 20,
-    "num_tasks_train": 2**14,
-    "num_tasks_val": 2**10,
+    "sim_num_tasks_train": 2**14,
+    "sim_num_tasks_val": 2**10,
     "rate": 3e-4,
     "num_epochs": 100,
     "dim_x": 1,
@@ -50,6 +59,15 @@ config = {
 
 dim_x = config["dim_x"]
 dim_y = config["dim_y"]
+if dim_x == 1:
+    config["points_per_unit"] = 64
+elif dim_x == 2:
+    # Reduce the PPU to reduce memory consumption.
+    config["points_per_unit"] = 32
+    # Since the PPU is reduced, we can also take off a layer of the UNet.
+    config["unet_strides"] = config["unet_strides"][:-1]
+    config["unet_channels"] = config["unet_channels"][:-1]
+
 model_str = config["model"]
 l_sim = config["lengthscale_sim"]
 noise = config["noise"]
