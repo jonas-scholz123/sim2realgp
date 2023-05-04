@@ -42,7 +42,7 @@ config = {
     "data": "matern",
     "lengthscale_sim": 0.25,
     "kernel": stheno.EQ(),
-    "noise": 0.00,
+    "noise": 0.05,
     "output_path": "./outputs",
     "train_path": "/train",
     "sim_model_path": "/sim_trained"
@@ -59,7 +59,12 @@ config["exp_dir"] = exp_dir
 
 config["train_plot_dir"] = f"{exp_dir}/train_plots"
 
-model_dir = f"{exp_dir}/models"
-config["model_dir"] = model_dir
-config["best_model_path"] = f"{model_dir}/best.torch"
-config["latest_model_path"] = f"{model_dir}/latest.torch"
+sim_model_dir = f"{exp_dir}/models/sim"
+config["sim_model_dir"] = sim_model_dir
+config["sim_best_model_path"] = f"{sim_model_dir}/best.torch"
+config["sim_latest_model_path"] = f"{sim_model_dir}/latest.torch"
+
+tuned_model_dir = f"{exp_dir}/models/tuned"
+config["tuned_model_dir"] = tuned_model_dir
+config["tuned_best_model_path"] = f"{tuned_model_dir}/best.torch"
+config["tuned_latest_model_path"] = f"{tuned_model_dir}/latest.torch"

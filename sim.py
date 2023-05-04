@@ -16,11 +16,14 @@ from config import config
 warnings.filterwarnings("ignore", category=ToDenseWarning)
 
 train_plot_dir = config["train_plot_dir"]
-model_dir = config["model_dir"]
+sim_model_dir = config["sim_model_dir"]
 exp_dir = config["exp_dir"]
 
+best_model_path = config["sim_best_model_path"]
+latest_model_path = config["sim_latest_model_path"]
+
 ensure_exists(train_plot_dir)
-ensure_exists(model_dir)
+ensure_exists(sim_model_dir)
 print("Working dir: ", exp_dir)
 
 def train(state, model, opt, objective, gen, *, fix_noise):
@@ -77,7 +80,7 @@ def eval(state, model, objective, gen):
 
         return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
 
-def setup(name, config, *, num_tasks_train, num_tasks_cv, num_tasks_eval, device):
+def setup(config, *, num_tasks_train, num_tasks_cv, num_tasks_eval, device):
     # Architecture choices specific for the GP experiments:
     # TODO: We should use a stride of 1 in the first layer, but for compatibility
     #    reasons with the models we already trained, we keep it like this.
@@ -149,7 +152,6 @@ device = config["device"]
 B.set_global_device(device)
 
 gen_train, gen_cv, gens_eval = setup(
-    "matern",
     config,
     num_tasks_train=config["num_tasks_train"],
     num_tasks_cv=config["num_tasks_val"],
@@ -200,8 +202,7 @@ for i in range(config["num_epochs"]):
     state, val = eval(state, model, objective, gen_cv())
 
     # Save current model.
-    best_model_path = config["best_model_path"]
-    latest_model_path = config["latest_model_path"]
+    
     torch.save(
         {
             "weights": model.state_dict(),
