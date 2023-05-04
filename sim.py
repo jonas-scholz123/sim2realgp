@@ -15,17 +15,12 @@ from config import config
 #%%
 warnings.filterwarnings("ignore", category=ToDenseWarning)
 
-dim_x = config["dim_x"]
-dim_y = config["dim_y"]
-model_str = config["model"]
-l_sim = config["lengthscale_sim"]
-noise = config["noise"]
-exp_dir = f"./outputs/x_{dim_x}_y_{dim_y}/{model_str}/l_sim_{l_sim:.3g}/noise_{noise:.3g}"
+train_plot_dir = config["train_plot_dir"]
+model_dir = config["model_dir"]
+exp_dir = config["exp_dir"]
 
-train_plot_path = f"{exp_dir}/train_plots"
-model_path = f"{exp_dir}/models"
-ensure_exists(train_plot_path)
-ensure_exists(model_path)
+ensure_exists(train_plot_dir)
+ensure_exists(model_dir)
 print("Working dir: ", exp_dir)
 
 def train(state, model, opt, objective, gen, *, fix_noise):
@@ -184,8 +179,7 @@ objective = partial(
 model = model.to(device)
 opt = torch.optim.Adam(model.parameters(), config["rate"])
 
-state = B.create_random_state(torch.float32, seed=0, device="cpu")
-state=None
+state = B.create_random_state(torch.float32, seed=0)
 fix_noise=None
 
 best_eval_lik = -np.infty
@@ -206,13 +200,15 @@ for i in range(config["num_epochs"]):
     state, val = eval(state, model, objective, gen_cv())
 
     # Save current model.
+    best_model_path = config["best_model_path"]
+    latest_model_path = config["latest_model_path"]
     torch.save(
         {
             "weights": model.state_dict(),
             "objective": val,
             "epoch": i + 1,
         },
-        f"{model_path}/latest.torch",
+        latest_model_path,
     )
 
     # Check if the model is the new best. If so, save it.
@@ -225,15 +221,14 @@ for i in range(config["num_epochs"]):
                 "objective": val,
                 "epoch": i + 1,
             },
-            f"{model_path}/best.torch",
+            best_model_path,
         )
 
-    print(f"{train_plot_path}/train-epoch-{i + 1:03d}-{0 + 1}.pdf")
     # Visualise a few predictions by the model.
     for j in range(2):
         visualise(
             model,
             gen_cv(),
-            path=f"{train_plot_path}/train-epoch-{i + 1:03d}-{j + 1}.pdf",
+            path=f"{train_plot_dir}/train-epoch-{i + 1:03d}-{j + 1}.pdf",
             config=config,
         )

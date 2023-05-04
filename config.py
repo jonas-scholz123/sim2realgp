@@ -29,7 +29,7 @@ config = {
     "num_basis_functions": 64,
     #TODO: what is this?
     "eeg_mode": "random",
-    "device": "mps",
+    "device": "cpu",
     "normalise_obj": True,
     "num_samples": 20,
     "num_tasks_train": 2**14,
@@ -47,3 +47,19 @@ config = {
     "train_path": "/train",
     "sim_model_path": "/sim_trained"
 }
+
+dim_x = config["dim_x"]
+dim_y = config["dim_y"]
+model_str = config["model"]
+l_sim = config["lengthscale_sim"]
+noise = config["noise"]
+
+exp_dir = f"./outputs/x_{dim_x}_y_{dim_y}/{model_str}/l_sim_{l_sim:.3g}/noise_{noise:.3g}"
+config["exp_dir"] = exp_dir
+
+config["train_plot_dir"] = f"{exp_dir}/train_plots"
+
+model_dir = f"{exp_dir}/models"
+config["model_dir"] = model_dir
+config["best_model_path"] = f"{model_dir}/best.torch"
+config["latest_model_path"] = f"{model_dir}/latest.torch"
