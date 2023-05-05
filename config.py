@@ -40,6 +40,7 @@ config = {
     # doesn't make sense to set it to a value higher of the last hidden layer of
     # the CNN architecture. We therefore set it to 64.
     "num_basis_functions": 64,
+    "arch": "conv",
     #TODO: what is this?
     "eeg_mode": "random",
     "device": "cpu",
@@ -47,10 +48,10 @@ config = {
     "num_samples": 20,
     "sim_num_tasks_train": 2**14,
     "sim_num_tasks_val": 2**10,
-    "real_num_tasks_train": 2**10,
+    "real_num_tasks_train": 2**12,
     "real_num_tasks_val": 2**10,
     "rate": 3e-4,
-    "num_epochs": 100,
+    "num_epochs": 30,
     "dim_x": 1,
     "dim_y": 1,
     "batch_size": 16,

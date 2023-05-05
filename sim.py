@@ -30,16 +30,20 @@ gen_train, gen_cv, gens_eval = setup(
     lengthscale=config["lengthscale_sim"]
 )
 
-model = nps.construct_gnp(
+model = nps.construct_convgnp(
+    points_per_unit=config["points_per_unit"],
     dim_x=config["dim_x"],
     dim_yc=(1,) * config["dim_y"],
     dim_yt=config["dim_y"],
-    dim_embedding=config["dim_embedding"],
-    enc_same=config["enc_same"],
-    num_dec_layers=config["num_layers"],
-    width=config["width"],
-    likelihood="lowrank",
-    num_basis_functions=config["num_basis_functions"],
+    likelihood="het",
+    conv_arch=config["arch"],
+    unet_channels=config["unet_channels"],
+    unet_strides=config["unet_strides"],
+    conv_channels=config["conv_channels"],
+    conv_layers=config["num_layers"],
+    conv_receptive_field=config["conv_receptive_field"],
+    margin=config["margin"],
+    encoder_scales=config["encoder_scales"],
     transform=config["transform"],
 )
 
