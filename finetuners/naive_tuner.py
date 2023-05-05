@@ -28,4 +28,7 @@ class NaiveTuner(Tuner):
         self.opt.zero_grad(set_to_none=True)
         val.backward()
         self.opt.step()
-        return state
+        return state, val
+    
+    def name(self):
+        return "NaiveTuner"

@@ -13,3 +13,7 @@ class Tuner(ABC):
     @abstractmethod 
     def train_on_batch(self, batch, state):
         pass
+
+    @abstractmethod
+    def name(self):
+        pass
