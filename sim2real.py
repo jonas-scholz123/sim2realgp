@@ -73,15 +73,19 @@ batches = list(gen_train.epoch())
 tuner = NaiveTuner(model, objective, torch.optim.Adam, config["rate"])
 state = B.create_random_state(torch.float32, seed=0)
 
+n_tasks = config["real_num_tasks_train"]
+sim_l = config["lengthscale_sim"]
+
 wandb.init(
     project="thesis",
     config={
         "stage": "tuning",
         "sim_lengthscale": config["lengthscale_sim"],
         "real_lengthscale": lengthscale,
-        "real_num_tasks": config["real_num_tasks_train"],
+        "real_num_tasks": n_tasks,
         "tuner": tuner.name(),
-    }
+    },
+    name=f"tune {sim_l} -> {lengthscale}, {n_tasks} tasks"
 )
 
 print(f"Tuning using {tuner}")
