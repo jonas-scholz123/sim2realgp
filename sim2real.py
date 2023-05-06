@@ -11,6 +11,7 @@ from train import train, evaluate, setup
 from functools import partial
 from finetuners.naive_tuner import NaiveTuner
 from utils import save_model, load_weights, ensure_exists, get_exp_dir, get_paths
+from models.convgnp import construct_convgnp
 
 # True lengthscale is 0.25.
 # TODO: move to config.
@@ -36,11 +37,12 @@ gen_train, gen_cv, gens_eval = setup(
     lengthscale=lengthscale
 )
 
-model = nps.construct_convgnp(
+model = construct_convgnp(
     points_per_unit=config["points_per_unit"],
     dim_x=config["dim_x"],
     dim_yc=(1,) * config["dim_y"],
     dim_yt=config["dim_y"],
+    #TODO: What about lowrank here?
     likelihood="het",
     conv_arch=config["arch"],
     unet_channels=config["unet_channels"],
@@ -60,7 +62,21 @@ objective = partial(
 )
 
 model = model.to(config["device"])
-model.decoder
+model.encoder.coder
+#%%
+
+lv_conv = nps.ConvNet(
+    dim=dim_x,
+    in_channels=lv_in_channels,
+    out_channels=lv_out_channels,
+    channels=conv_channels,
+    num_layers=conv_layers,
+    points_per_unit=points_per_unit,
+    receptive_field=conv_receptive_field,
+    separable="sep" in conv_arch,
+    residual="res" in conv_arch,
+    dtype=dtype,
+)
 #%%
 
 best_pretrained_path = get_paths(sim_exp_dir)[1]

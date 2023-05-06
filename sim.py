@@ -10,9 +10,11 @@ import lab as B
 
 from utils import ensure_exists, load_weights, save_model, get_exp_dir, get_paths
 from train import train, setup, evaluate
+from models.convgnp import construct_convgnp
 from plot import visualise
 from config import config
 #%%
+
 exp_dir = get_exp_dir(config)
 train_plot_dir, best_model_path, latest_model_path, sim_model_dir = get_paths(exp_dir)
 
@@ -30,7 +32,7 @@ gen_train, gen_cv, gens_eval = setup(
     lengthscale=config["lengthscale_sim"]
 )
 
-model = nps.construct_convgnp(
+model = construct_convgnp(
     points_per_unit=config["points_per_unit"],
     dim_x=config["dim_x"],
     dim_yc=(1,) * config["dim_y"],
