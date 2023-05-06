@@ -62,7 +62,6 @@ objective = partial(
 )
 
 model = model.to(config["device"])
-model.encoder.coder
 #%%
 
 best_pretrained_path = get_paths(sim_exp_dir)[1]
