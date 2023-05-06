@@ -1,6 +1,7 @@
 from plum import convert
 
 import neuralprocesses.torch as nps  # This fixes inspection below.
+from components.convnet import ConvNet
 
 def parse_transform(nps=nps, *, transform):
     """Construct the likelihood.
@@ -356,7 +357,7 @@ def construct_convgnp(
         receptive_field = conv.receptive_field / points_per_unit
     elif "conv" in conv_arch:
         if dim_lv > 0:
-            lv_conv = nps.ConvNet(
+            lv_conv = ConvNet(
                 dim=dim_x,
                 in_channels=lv_in_channels,
                 out_channels=lv_out_channels,
@@ -371,7 +372,7 @@ def construct_convgnp(
         else:
             lv_conv = lambda x: x
 
-        conv = nps.ConvNet(
+        conv = ConvNet(
             dim=dim_x,
             in_channels=in_channels,
             out_channels=out_channels,
