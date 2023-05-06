@@ -65,20 +65,6 @@ model = model.to(config["device"])
 model.encoder.coder
 #%%
 
-lv_conv = nps.ConvNet(
-    dim=dim_x,
-    in_channels=lv_in_channels,
-    out_channels=lv_out_channels,
-    channels=conv_channels,
-    num_layers=conv_layers,
-    points_per_unit=points_per_unit,
-    receptive_field=conv_receptive_field,
-    separable="sep" in conv_arch,
-    residual="res" in conv_arch,
-    dtype=dtype,
-)
-#%%
-
 best_pretrained_path = get_paths(sim_exp_dir)[1]
 print(f"Loading best model from {best_pretrained_path}")
 model = load_weights(model, best_pretrained_path)
