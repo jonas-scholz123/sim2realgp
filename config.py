@@ -20,7 +20,7 @@ config = {
     "dim_embedding": 256,
     "enc_same": False,
     "num_heads": 8,
-    "num_layers": 6,
+    "num_layers": 2,
     "unet_channels": (64,) * 6,
     # TODO: We should use a stride of 1 in the first layer, but for compatibility
     #    reasons with the models we already trained, we keep it like this.
@@ -41,17 +41,17 @@ config = {
     # the CNN architecture. We therefore set it to 64.
     "num_basis_functions": 64,
     "arch": "conv",
-    #TODO: what is this?
+    # TODO: what is this?
     "eeg_mode": "random",
     "device": "cpu",
     "normalise_obj": True,
     "num_samples": 20,
-    "sim_num_tasks_train": 2**14,
+    "sim_num_tasks_train": 2**10,
     "sim_num_tasks_val": 2**10,
     "real_num_tasks_train": 2**12,
     "real_num_tasks_val": 2**10,
     "rate": 3e-4,
-    "num_epochs": 30,
+    "num_epochs": 50,
     "dim_x": 1,
     "dim_y": 1,
     "batch_size": 16,
@@ -61,7 +61,7 @@ config = {
     "noise": 0.05,
     "output_path": "./outputs",
     "train_path": "/train",
-    "sim_model_path": "/sim_trained"
+    "sim_model_path": "/sim_trained",
 }
 
 dim_x = config["dim_x"]
