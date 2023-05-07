@@ -13,7 +13,6 @@ from train import train, setup, evaluate
 from models.convgnp import construct_convgnp
 from plot import visualise
 from config import config
-#%%
 
 exp_dir = get_exp_dir(config)
 train_plot_dir, best_model_path, latest_model_path, sim_model_dir = get_paths(exp_dir)
@@ -56,6 +55,8 @@ objective = partial(
 )
 
 model = model.to(device)
+print(model)
+#%%
 opt = torch.optim.Adam(model.parameters(), config["rate"])
 
 state = B.create_random_state(torch.float32, seed=0)
