@@ -3,6 +3,7 @@ from plum import convert
 import neuralprocesses.torch as nps  # This fixes inspection below.
 from components.convnet import ConvNet
 
+
 def parse_transform(nps=nps, *, transform):
     """Construct the likelihood.
 
@@ -63,6 +64,7 @@ def construct_likelihood(nps=nps, *, spec, dim_y, num_basis_functions, dtype):
         selector = nps.SelectFromChannels(dim_y, (num_basis_functions, dim_y), dim_y)
         lik = nps.LowRankGaussianLikelihood(num_basis_functions)
     return num_channels, selector, lik
+
 
 def _convgnp_init_dims(dim_yc, dim_yt, dim_y):
     # Make sure that `dim_yc` is initialised and a tuple.
@@ -171,6 +173,8 @@ def construct_convgnp(
     transform=None,
     dtype=None,
     nps=nps,
+    batchnorm=True,
+    residual=True,
 ):
     """A Convolutional Gaussian Neural Process.
 
@@ -358,31 +362,25 @@ def construct_convgnp(
     elif "conv" in conv_arch:
         if dim_lv > 0:
             lv_conv = ConvNet(
-                dim=dim_x,
                 in_channels=lv_in_channels,
                 out_channels=lv_out_channels,
                 channels=conv_channels,
                 num_layers=conv_layers,
                 points_per_unit=points_per_unit,
                 receptive_field=conv_receptive_field,
-                separable="sep" in conv_arch,
-                residual="res" in conv_arch,
-                dtype=dtype,
             )
         else:
             lv_conv = lambda x: x
 
         conv = ConvNet(
-            dim=dim_x,
             in_channels=in_channels,
             out_channels=out_channels,
             channels=conv_channels,
             num_layers=conv_layers,
             points_per_unit=points_per_unit,
             receptive_field=conv_receptive_field,
-            separable="sep" in conv_arch,
-            residual="res" in conv_arch,
-            dtype=dtype,
+            batchnorm=batchnorm,
+            residual=residual,
         )
         receptive_field = conv_receptive_field
     else:

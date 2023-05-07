@@ -1,4 +1,4 @@
-#%%
+# %%
 from functools import partial
 import warnings
 from tqdm import tqdm
@@ -28,7 +28,7 @@ gen_train, gen_cv, gens_eval = setup(
     config,
     num_tasks_train=config["sim_num_tasks_train"],
     num_tasks_val=config["sim_num_tasks_val"],
-    lengthscale=config["lengthscale_sim"]
+    lengthscale=config["lengthscale_sim"],
 )
 
 model = construct_convgnp(
@@ -46,6 +46,8 @@ model = construct_convgnp(
     margin=config["margin"],
     encoder_scales=config["encoder_scales"],
     transform=config["transform"],
+    batchnorm=config["batchnorm"],
+    residual=config["residual"],
 )
 
 objective = partial(
@@ -56,11 +58,11 @@ objective = partial(
 
 model = model.to(device)
 print(model)
-#%%
+# %%
 opt = torch.optim.Adam(model.parameters(), config["rate"])
 
 state = B.create_random_state(torch.float32, seed=0)
-fix_noise=None
+fix_noise = None
 
 best_eval_lik = -np.infty
 
@@ -81,7 +83,7 @@ for i in tqdm(range(config["num_epochs"])):
 
     # Save current model.
     save_model(model, val, i + 1, latest_model_path)
-    
+
     # Check if the model is the new best. If so, save it.
     if val > best_eval_lik:
         print("New best model!")
