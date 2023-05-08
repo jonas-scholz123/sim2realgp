@@ -7,6 +7,7 @@ import neuralprocesses.torch as nps
 import numpy as np
 import torch
 import lab as B
+import wandb
 
 from utils import ensure_exists, load_weights, save_model, get_exp_dir, get_paths
 from train import train, setup, evaluate
@@ -24,6 +25,20 @@ print("Working dir: ", exp_dir)
 device = config["device"]
 B.set_global_device(device)
 
+
+if config["wandb"]:
+    wandb.init(
+        project="thesis",
+        config={
+            "stage": "sim",
+            "sim_lengthscale": config["lengthscale_sim"],
+            "num_layers": config["num_layers"],
+            "affine": config["affine"],
+            "residual": config["residual"],
+            "old": config["old"],
+        },
+    )
+
 gen_train, gen_cv, gens_eval = setup(
     config,
     num_tasks_train=config["sim_num_tasks_train"],
@@ -31,24 +46,45 @@ gen_train, gen_cv, gens_eval = setup(
     lengthscale=config["lengthscale_sim"],
 )
 
-model = construct_convgnp(
-    points_per_unit=config["points_per_unit"],
-    dim_x=config["dim_x"],
-    dim_yc=(1,) * config["dim_y"],
-    dim_yt=config["dim_y"],
-    likelihood="het",
-    conv_arch=config["arch"],
-    unet_channels=config["unet_channels"],
-    unet_strides=config["unet_strides"],
-    conv_channels=config["conv_channels"],
-    conv_layers=config["num_layers"],
-    conv_receptive_field=config["conv_receptive_field"],
-    margin=config["margin"],
-    encoder_scales=config["encoder_scales"],
-    transform=config["transform"],
-    affine=config["affine"],
-    residual=config["residual"],
-)
+
+if config["old"]:
+    model = nps.construct_convgnp(
+        points_per_unit=config["points_per_unit"],
+        dim_x=config["dim_x"],
+        dim_yc=(1,) * config["dim_y"],
+        dim_yt=config["dim_y"],
+        likelihood="het",
+        conv_arch=config["arch"],
+        unet_channels=config["unet_channels"],
+        unet_strides=config["unet_strides"],
+        conv_channels=config["conv_channels"],
+        conv_layers=config["num_layers"],
+        conv_receptive_field=config["conv_receptive_field"],
+        margin=config["margin"],
+        encoder_scales=config["encoder_scales"],
+        transform=config["transform"],
+    )
+else:
+    model = construct_convgnp(
+        points_per_unit=config["points_per_unit"],
+        dim_x=config["dim_x"],
+        dim_yc=(1,) * config["dim_y"],
+        dim_yt=config["dim_y"],
+        likelihood="het",
+        conv_arch=config["arch"],
+        unet_channels=config["unet_channels"],
+        unet_strides=config["unet_strides"],
+        conv_channels=config["conv_channels"],
+        conv_layers=config["num_layers"],
+        conv_receptive_field=config["conv_receptive_field"],
+        margin=config["margin"],
+        encoder_scales=config["encoder_scales"],
+        transform=config["transform"],
+        affine=config["affine"],
+        residual=config["residual"],
+        kernel_size=config["kernel_size"],
+    )
+
 
 objective = partial(
     nps.loglik,
@@ -69,7 +105,7 @@ best_eval_lik = -np.infty
 for i in tqdm(range(config["num_epochs"])):
     B.epsilon = config["epsilon_start"] if i == 0 else config["epsilon"]
 
-    state, _ = train(
+    state, train_lik = train(
         state,
         model,
         opt,
@@ -79,16 +115,19 @@ for i in tqdm(range(config["num_epochs"])):
     )
 
     # The epoch is done. Now evaluate.
-    state, val = evaluate(state, model, objective, gen_cv())
+    state, val_lik = evaluate(state, model, objective, gen_cv())
+
+    if config["wandb"]:
+        wandb.log({"train_lik": train_lik, "val_likelihood": val_lik})
 
     # Save current model.
-    save_model(model, val, i + 1, latest_model_path)
+    save_model(model, val_lik, i + 1, latest_model_path)
 
     # Check if the model is the new best. If so, save it.
-    if val > best_eval_lik:
+    if val_lik > best_eval_lik:
         print("New best model!")
-        best_eval_lik = val
-        save_model(model, val, i + 1, best_model_path)
+        best_eval_lik = val_lik
+        save_model(model, val_lik, i + 1, best_model_path)
 
     # Visualise a few predictions by the model.
     for j in range(2):

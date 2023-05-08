@@ -1,4 +1,4 @@
-#%%
+# %%
 import torch
 import neuralprocesses.torch as nps
 import lab as B
@@ -34,7 +34,7 @@ gen_train, gen_cv, gens_eval = setup(
     config,
     num_tasks_train=config["real_num_tasks_train"],
     num_tasks_val=config["real_num_tasks_val"],
-    lengthscale=lengthscale
+    lengthscale=lengthscale,
 )
 
 model = construct_convgnp(
@@ -42,7 +42,7 @@ model = construct_convgnp(
     dim_x=config["dim_x"],
     dim_yc=(1,) * config["dim_y"],
     dim_yt=config["dim_y"],
-    #TODO: What about lowrank here?
+    # TODO: What about lowrank here?
     likelihood="het",
     conv_arch=config["arch"],
     unet_channels=config["unet_channels"],
@@ -62,7 +62,7 @@ objective = partial(
 )
 
 model = model.to(config["device"])
-#%%
+# %%
 
 best_pretrained_path = get_paths(sim_exp_dir)[1]
 print(f"Loading best model from {best_pretrained_path}")
@@ -70,7 +70,7 @@ model = load_weights(model, best_pretrained_path)
 
 # Don't want to generate new tasks, make one epoch and reuse.
 batches = list(gen_train.epoch())
-#TODO: different LR for tuning
+# TODO: different LR for tuning
 tuner = NaiveTuner(model, objective, torch.optim.Adam, config["rate"])
 state = B.create_random_state(torch.float32, seed=0)
 
@@ -86,7 +86,7 @@ wandb.init(
         "real_num_tasks": n_tasks,
         "tuner": tuner.name(),
     },
-    name=f"tune {sim_l} -> {lengthscale}, {n_tasks} tasks"
+    name=f"tune {sim_l} -> {lengthscale}, {n_tasks} tasks",
 )
 
 print(f"Tuning using {tuner}")
@@ -110,7 +110,7 @@ for i in range(config["num_epochs"]):
 
     # Save current model.
     save_model(model, val, i + 1, latest_model_path)
-    
+
     # Check if the model is the new best. If so, save it.
     if val > best_eval_lik:
         print("New best model!")

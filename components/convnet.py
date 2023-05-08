@@ -45,7 +45,6 @@ class ConvNet(nn.Module):
             ),
             nn.ReLU(),
             nn.Conv1d(channels, channels, self.kernel, padding=(self.kernel - 1) // 2),
-            nn.ReLU(),
         ]
 
         layers.extend(
@@ -57,7 +56,7 @@ class ConvNet(nn.Module):
                     affine=affine,
                     residual=residual,
                 )
-                for _ in range(num_layers)
+                for _ in range(max(num_layers - 4, 1))
             ]
         )
 
@@ -94,6 +93,46 @@ class ConvBlock(torch.nn.Module):
         padding = (kernel - 1) // 2
 
         self.activation = nn.ReLU()
+        self.conv = nn.Conv1d(
+            in_channels, out_channels, kernel, stride=1, padding=padding
+        )
+
+        self.residual = residual
+
+        if affine:
+            self.affine = FiLM(in_channels)
+        else:
+            self.affine = nn.Identity()
+
+        if residual:
+            self.residual = (
+                torch.nn.Conv1d(in_channels, out_channels, kernel_size=1)
+                if in_channels != out_channels
+                else torch.nn.Identity()
+            )
+
+    def forward(self, x: torch.Tensor):
+        h = self.conv(self.activation(self.affine(x)))
+        if self.residual:
+            return h + self.residual(x)
+        else:
+            return h
+
+
+class DoubleConvBlock(torch.nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel: int,
+        affine: bool = False,
+        residual: bool = True,
+    ) -> None:
+        super().__init__()
+
+        padding = (kernel - 1) // 2
+
+        self.activation = nn.ReLU()
         self.residual = residual
 
         if affine:
@@ -117,12 +156,8 @@ class ConvBlock(torch.nn.Module):
         )
 
     def forward(self, x: torch.Tensor):
-        # print(f"{x.shape=}")
         h = self.conv1(self.activation(self.affine1(x)))
-        # print(f"{h.shape=}")
         h = self.conv2(self.activation(self.affine2(h)))
-        # print(f"{h.shape=}")
-        # print(self.residual(x).shape)
         if self.residual:
             return h + self.residual(x)
         else:

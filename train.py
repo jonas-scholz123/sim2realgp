@@ -5,6 +5,7 @@ Utility functions used for training
 import neuralprocesses.torch as nps
 import torch
 import lab as B
+import wandb
 
 from utils import with_err
 
@@ -30,7 +31,7 @@ def train(state, model, opt, objective, gen, *, fix_noise):
 
     vals = B.concat(*vals)
     print("Loglik (T)", with_err(vals, and_lower=True))
-    return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
+    return state, B.mean(vals)
 
 
 def evaluate(state, model, objective, gen):

@@ -10,6 +10,7 @@ config = {
         "rate": None,
         "also_ar": False,
     },
+    "wandb": True,
     "model": "cnp",
     "epsilon": 1e-8,
     "epsilon_start": 1e-2,
@@ -20,10 +21,11 @@ config = {
     "dim_embedding": 256,
     "enc_same": False,
     "num_heads": 8,
-    "num_layers": 4,
-    "residual": True,  # Use residual connections?
+    "num_layers": 8,
+    "residual": False,  # Use residual connections?
     "affine": True,  # Use FiLM layers?
-    "kernel_size": 35,
+    "old": False,
+    "kernel_size": 33,
     "unet_channels": (64,) * 6,
     # TODO: We should use a stride of 1 in the first layer, but for compatibility
     #    reasons with the models we already trained, we keep it like this.
