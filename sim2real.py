@@ -10,6 +10,7 @@ from plot import visualise
 from train import train, evaluate, setup
 from functools import partial
 from finetuners.naive_tuner import NaiveTuner
+from finetuners.film_tuner import FilmTuner
 from utils import save_model, load_weights, ensure_exists, get_exp_dir, get_paths
 from models.convgnp import construct_convgnp
 
@@ -42,7 +43,6 @@ model = construct_convgnp(
     dim_x=config["dim_x"],
     dim_yc=(1,) * config["dim_y"],
     dim_yt=config["dim_y"],
-    # TODO: What about lowrank here?
     likelihood="het",
     conv_arch=config["arch"],
     unet_channels=config["unet_channels"],
@@ -53,7 +53,11 @@ model = construct_convgnp(
     margin=config["margin"],
     encoder_scales=config["encoder_scales"],
     transform=config["transform"],
+    affine=config["affine"],
+    residual=config["residual"],
+    kernel_size=config["kernel_size"],
 )
+
 
 objective = partial(
     nps.loglik,
@@ -71,23 +75,25 @@ model = load_weights(model, best_pretrained_path)
 # Don't want to generate new tasks, make one epoch and reuse.
 batches = list(gen_train.epoch())
 # TODO: different LR for tuning
-tuner = NaiveTuner(model, objective, torch.optim.Adam, config["rate"])
+# tuner = NaiveTuner(model, objective, torch.optim.Adam, config["rate"])
+tuner = FilmTuner(model, objective, torch.optim.Adam, config["rate"])
 state = B.create_random_state(torch.float32, seed=0)
 
 n_tasks = config["real_num_tasks_train"]
 sim_l = config["lengthscale_sim"]
 
-wandb.init(
-    project="thesis",
-    config={
-        "stage": "tuning",
-        "sim_lengthscale": config["lengthscale_sim"],
-        "real_lengthscale": lengthscale,
-        "real_num_tasks": n_tasks,
-        "tuner": tuner.name(),
-    },
-    name=f"tune {sim_l} -> {lengthscale}, {n_tasks} tasks",
-)
+if config["wandb"]:
+    wandb.init(
+        project="thesis",
+        config={
+            "stage": "tuning",
+            "sim_lengthscale": config["lengthscale_sim"],
+            "real_lengthscale": lengthscale,
+            "real_num_tasks": n_tasks,
+            "tuner": tuner.name(),
+        },
+        name=f"tune {sim_l} -> {lengthscale}, {n_tasks} tasks",
+    )
 
 print(f"Tuning using {tuner}")
 
@@ -106,7 +112,8 @@ for i in range(config["num_epochs"]):
 
     # The epoch is done. Now evaluate.
     state, val_lik = evaluate(state, model, objective, gen_cv())
-    wandb.log({"train_lik": train_lik, "val_likelihood": val_lik})
+    if config["wandb"]:
+        wandb.log({"train_lik": train_lik, "val_likelihood": val_lik})
 
     # Save current model.
     save_model(model, val, i + 1, latest_model_path)

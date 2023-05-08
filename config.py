@@ -57,7 +57,7 @@ config = {
     "batch_size": 16,
     "lengthscale_sim": 0.25,
     "kernel": stheno.EQ(),
-    "noise": 0.00,
+    "noise": 0.05,
     "output_path": "./outputs",
     "train_path": "/train",
     "sim_model_path": "/sim_trained",
