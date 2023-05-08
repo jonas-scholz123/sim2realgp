@@ -173,8 +173,9 @@ def construct_convgnp(
     transform=None,
     dtype=None,
     nps=nps,
-    batchnorm=True,
+    affine=True,
     residual=True,
+    kernel_size=35,
 ):
     """A Convolutional Gaussian Neural Process.
 
@@ -368,6 +369,9 @@ def construct_convgnp(
                 num_layers=conv_layers,
                 points_per_unit=points_per_unit,
                 receptive_field=conv_receptive_field,
+                affine=affine,
+                residual=residual,
+                kernel=kernel_size,
             )
         else:
             lv_conv = lambda x: x
@@ -379,8 +383,9 @@ def construct_convgnp(
             num_layers=conv_layers,
             points_per_unit=points_per_unit,
             receptive_field=conv_receptive_field,
-            batchnorm=batchnorm,
+            affine=affine,
             residual=residual,
+            kernel=kernel_size,
         )
         receptive_field = conv_receptive_field
     else:

@@ -1,12 +1,13 @@
-'''
+"""
 Utility functions used for training
 (both sim and sim2real).
-'''
+"""
 import neuralprocesses.torch as nps
 import torch
 import lab as B
 
 from utils import with_err
+
 
 def train(state, model, opt, objective, gen, *, fix_noise):
     """Train for an epoch."""
@@ -30,6 +31,7 @@ def train(state, model, opt, objective, gen, *, fix_noise):
     vals = B.concat(*vals)
     print("Loglik (T)", with_err(vals, and_lower=True))
     return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
+
 
 def evaluate(state, model, objective, gen):
     """Perform evaluation."""
@@ -61,6 +63,7 @@ def evaluate(state, model, objective, gen):
             print("KL (diag)", with_err(B.concat(*kls_diag), and_upper=True))
 
         return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
+
 
 def setup(config, *, num_tasks_train, num_tasks_val, lengthscale):
     # Architecture choices specific for the GP experiments:

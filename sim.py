@@ -46,7 +46,7 @@ model = construct_convgnp(
     margin=config["margin"],
     encoder_scales=config["encoder_scales"],
     transform=config["transform"],
-    batchnorm=config["batchnorm"],
+    affine=config["affine"],
     residual=config["residual"],
 )
 

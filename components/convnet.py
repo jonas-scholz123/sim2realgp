@@ -17,7 +17,7 @@ class ConvNet(nn.Module):
         kernel: Optional[int] = None,
         points_per_unit: Optional[float] = 1,
         receptive_field: Optional[float] = None,
-        batchnorm: bool = True,
+        affine: bool = True,
         residual: bool = True,
     ):
         super().__init__()
@@ -50,11 +50,11 @@ class ConvNet(nn.Module):
 
         layers.extend(
             [
-                ResBlock(
+                ConvBlock(
                     in_channels=channels,
                     out_channels=channels,
                     kernel=self.kernel,
-                    batchnorm=batchnorm,
+                    affine=affine,
                     residual=residual,
                 )
                 for _ in range(num_layers)
@@ -80,33 +80,28 @@ class ConvNet(nn.Module):
         return uncompress(self.net(x))
 
 
-class ResBlock(torch.nn.Module):
+class ConvBlock(torch.nn.Module):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
         kernel: int,
-        batchnorm: bool = False,
+        affine: bool = False,
         residual: bool = True,
     ) -> None:
         super().__init__()
-
-        # print(f"{out_channels=}, {in_channels=}")
-        # print(f"{kernel=}")
 
         padding = (kernel - 1) // 2
 
         self.activation = nn.ReLU()
         self.residual = residual
 
-        if batchnorm:
-            # self.norm1 = nn.BatchNorm1d(in_channels)
-            # self.norm2 = nn.BatchNorm1d(out_channels)
-            self.norm1 = nn.GroupNorm(1, in_channels)
-            self.norm2 = nn.GroupNorm(1, out_channels)
+        if affine:
+            self.affine1 = FiLM(in_channels)
+            self.affine2 = FiLM(out_channels)
         else:
-            self.norm1 = nn.Identity()
-            self.norm2 = nn.Identity()
+            self.affine1 = nn.Identity()
+            self.affine2 = nn.Identity()
 
         self.conv1 = nn.Conv1d(
             in_channels, out_channels, kernel, stride=1, padding=padding
@@ -123,9 +118,9 @@ class ResBlock(torch.nn.Module):
 
     def forward(self, x: torch.Tensor):
         # print(f"{x.shape=}")
-        h = self.conv1(self.activation(self.norm1(x)))
+        h = self.conv1(self.activation(self.affine1(x)))
         # print(f"{h.shape=}")
-        h = self.conv2(self.activation(self.norm2(h)))
+        h = self.conv2(self.activation(self.affine2(h)))
         # print(f"{h.shape=}")
         # print(self.residual(x).shape)
         if self.residual:
@@ -134,6 +129,28 @@ class ResBlock(torch.nn.Module):
             return h
 
 
+class FiLM(nn.Module):
+    def __init__(self, n_features) -> None:
+        super().__init__()
+        self.scales = nn.parameter.Parameter(torch.zeros(n_features) + 1)
+        self.biases = nn.parameter.Parameter(torch.zeros(n_features))
+
+    def forward(self, x: torch.Tensor):
+        return self.scales[None, :, None] * x + self.biases[None, :, None]
+
+
 if __name__ == "__main__":
-    model = ConvNet(1, 10, 10, 10, 5, None)
-    print(model)
+    model = ConvNet(2, 32, 64, 5, 30, affine=True, residual=True)
+    # x = torch.rand(16, 2, 12)
+    # model(x)
+
+# model
+
+# i = 0
+# j = 4
+# k = 0
+# print(list(list(model.modules())[i].net[j].parameters())[k])
+# print(list(list(list(model.modules())[i].net[j].modules())[0].modules())[k])
+
+# list(model.parameters())
+# [a.shape for a in list(model.parameters())]

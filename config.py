@@ -20,9 +20,10 @@ config = {
     "dim_embedding": 256,
     "enc_same": False,
     "num_heads": 8,
-    "num_layers": 6,
+    "num_layers": 4,
     "residual": True,  # Use residual connections?
-    "batchnorm": True,  # Use batchnorm?
+    "affine": True,  # Use FiLM layers?
+    "kernel_size": 35,
     "unet_channels": (64,) * 6,
     # TODO: We should use a stride of 1 in the first layer, but for compatibility
     #    reasons with the models we already trained, we keep it like this.
@@ -52,7 +53,7 @@ config = {
     "sim_num_tasks_val": 2**10,
     "real_num_tasks_train": 2**12,
     "real_num_tasks_val": 2**10,
-    "rate": 1e-4,
+    "rate": 3e-4,
     "num_epochs": 50,
     "dim_x": 1,
     "dim_y": 1,
