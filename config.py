@@ -1,5 +1,7 @@
 import stheno
 import warnings
+
+from finetuners.get_tuner import TunerType
 from matrix.util import ToDenseWarning
 
 warnings.filterwarnings("ignore", category=ToDenseWarning)
@@ -10,7 +12,7 @@ config = {
         "rate": None,
         "also_ar": False,
     },
-    "wandb": False,
+    "wandb": True,
     "model": "convcnp",
     "epsilon": 1e-8,
     "epsilon_start": 1e-2,
@@ -48,14 +50,16 @@ config = {
     "num_samples": 20,
     "sim_num_tasks_train": 2**10,
     "sim_num_tasks_val": 2**10,
-    "real_num_tasks_train": 2**12,
-    "real_num_tasks_val": 2**10,
+    "real_num_tasks_train": 2**8,
+    "real_num_tasks_val": 2**8,
+    "tuner": TunerType.freeze,
     "rate": 3e-4,
-    "num_epochs": 50,
+    "num_epochs": 15,
     "dim_x": 1,
     "dim_y": 1,
     "batch_size": 16,
     "lengthscale_sim": 0.25,
+    "lengthscale_real": 0.1,
     "kernel": stheno.EQ(),
     "noise": 0.05,
     "output_path": "./outputs",

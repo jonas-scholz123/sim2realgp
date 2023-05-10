@@ -73,8 +73,7 @@ objective = partial(
     num_samples=config["num_samples"],
     normalise=config["normalise_obj"],
 )
-
-model = model.to(device)
+# %%
 opt = torch.optim.Adam(model.parameters(), config["rate"])
 
 state = B.create_random_state(torch.float32, seed=0)

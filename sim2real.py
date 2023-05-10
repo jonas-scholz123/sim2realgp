@@ -4,20 +4,15 @@ import neuralprocesses.torch as nps
 import lab as B
 import wandb
 from tqdm import tqdm
-
 from config import config
 from plot import visualise
 from train import train, evaluate, setup
 from functools import partial
-from finetuners.naive_tuner import NaiveTuner
-from finetuners.film_tuner import FilmTuner
 from utils import save_model, load_weights, ensure_exists, get_exp_dir, get_paths
 from models.convgnp import construct_convgnp
+from finetuners.get_tuner import get_tuner
 
-# True lengthscale is 0.25.
-# TODO: move to config.
-lengthscales = [0.1, 0.2]
-lengthscale = 0.1
+lengthscale = config["lengthscale_real"]
 
 # simulator only.
 sim_exp_dir = get_exp_dir(config)
@@ -75,8 +70,7 @@ model = load_weights(model, best_pretrained_path)
 # Don't want to generate new tasks, make one epoch and reuse.
 batches = list(gen_train.epoch())
 # TODO: different LR for tuning
-# tuner = NaiveTuner(model, objective, torch.optim.Adam, config["rate"])
-tuner = FilmTuner(model, objective, torch.optim.Adam, config["rate"])
+tuner = get_tuner(config["tuner"])(model, objective, torch.optim.Adam, config["rate"])
 state = B.create_random_state(torch.float32, seed=0)
 
 n_tasks = config["real_num_tasks_train"]

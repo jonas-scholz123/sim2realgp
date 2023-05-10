@@ -1,6 +1,5 @@
 from abc import abstractmethod, ABC
 from torch import nn
-
 from typing import Tuple
 
 

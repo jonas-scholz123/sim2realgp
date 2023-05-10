@@ -1,6 +1,5 @@
 # %%
 from finetuners.tuner import Tuner
-from train import train
 import lab as B
 
 
