@@ -50,9 +50,12 @@ config = {
     "num_samples": 20,
     "sim_num_tasks_train": 2**10,
     "sim_num_tasks_val": 2**10,
-    "real_nums_tasks_train": [2**4, 2**8, 2**10],
+    "real_nums_tasks_train": [2**10],
     "real_num_tasks_val": 2**8,
-    "tuners": [TunerType.naive, TunerType.freeze, TunerType.film],
+    # If False, the same data is re-used each episode. Else, new data is generated
+    # and the total number of datapoints is num_epochs * real_num_task_train
+    "real_inf_tasks": True,
+    "tuners": [TunerType.naive],
     "rate": 3e-4,
     "tune_rate": 1e-4,
     "num_epochs": 30,
@@ -60,7 +63,7 @@ config = {
     "dim_y": 1,
     "batch_size": 16,
     "lengthscale_sim": 0.25,
-    "lengthscales_real": [0.2, 0.1, 0.01],
+    "lengthscales_real": [0.2],
     "kernel": stheno.EQ(),
     "noise": 0.05,
     "visualise": False,

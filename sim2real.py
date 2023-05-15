@@ -68,8 +68,8 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
     print(f"Loading best model from {best_pretrained_path}")
     model = load_weights(model, best_pretrained_path)
 
-    # Don't want to generate new tasks, make one epoch and reuse.
     batches = list(gen_train.epoch())
+
     tuner = get_tuner(tuner_type)(
         model, objective, torch.optim.Adam, config["tune_rate"]
     )
@@ -85,6 +85,7 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
                 "sim_lengthscale": config["lengthscale_sim"],
                 "real_lengthscale": real_lengthscale,
                 "real_num_tasks": num_tasks,
+                "real_inf_tasks": config["real_inf_tasks"],
                 "tuner": tuner.name(),
             },
             name=f"tune {sim_l} -> {real_lengthscale}, {num_tasks} tasks",
@@ -93,7 +94,10 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
 
     print(f"Tuning using {tuner}")
 
-    state, val = evaluate(state, tuner.model, objective, gen_cv())
+    state, val_lik = evaluate(state, tuner.model, objective, gen_cv())
+    state, train_lik = evaluate(state, tuner.model, objective, gen_train)
+    if config["wandb"]:
+        run.log({"train_lik": train_lik, "val_likelihood": val_lik})
 
     best_eval_lik = -float("inf")
 
@@ -112,13 +116,13 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
             run.log({"train_lik": train_lik, "val_likelihood": val_lik})
 
         # Save current model.
-        save_model(model, val, i + 1, latest_model_path)
+        save_model(model, val_lik, i + 1, latest_model_path)
 
         # Check if the model is the new best. If so, save it.
-        if val > best_eval_lik:
+        if val_lik > best_eval_lik:
             print("New best model!")
-            best_eval_lik = val
-            save_model(model, val, i + 1, best_model_path)
+            best_eval_lik = val_lik
+            save_model(model, val_lik, i + 1, best_model_path)
 
         if config["visualise"]:
             # Visualise a few predictions by the model.
@@ -129,6 +133,10 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
                     path=f"{train_plot_dir}/train-epoch-{i + 1:03d}-{j + 1}.pdf",
                     config=config,
                 )
+
+        if config["real_inf_tasks"]:
+            # Get a fresh batch of tasks.
+            batches = list(gen_train.epoch())
 
 
 if __name__ == "__main__":
