@@ -71,11 +71,11 @@ def setup(config, *, num_tasks_train, num_tasks_val, lengthscale):
     # Other settings specific to the GP experiments:
     kernel = config["kernel"].stretch(lengthscale)
 
+    dim_x = config["dim_x"]
     num_context_min = int((1 / lengthscale) * dim_x)
     num_context_max = int((10 / lengthscale) * dim_x)
     num_target = int((15 / lengthscale) * dim_x)
 
-    dim_x = config["dim_x"]
     gen_train = nps.GPGenerator(
         torch.float32,
         seed=10,
