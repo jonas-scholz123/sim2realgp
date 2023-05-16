@@ -71,14 +71,18 @@ def setup(config, *, num_tasks_train, num_tasks_val, lengthscale):
     # Other settings specific to the GP experiments:
     kernel = config["kernel"].stretch(lengthscale)
 
+    num_context_min = int((1 / lengthscale) * dim_x)
+    num_context_max = int((10 / lengthscale) * dim_x)
+    num_target = int((15 / lengthscale) * dim_x)
+
     dim_x = config["dim_x"]
     gen_train = nps.GPGenerator(
         torch.float32,
         seed=10,
         noise=config["noise"],
         kernel=kernel,
-        num_context=nps.UniformDiscrete(3, 30 * dim_x),
-        num_target=nps.UniformDiscrete(50 * dim_x, 50 * dim_x),
+        num_context=nps.UniformDiscrete(num_context_min, num_context_max),
+        num_target=nps.UniformDiscrete(num_target, num_target),
         num_tasks=num_tasks_train,
         pred_logpdf=False,
         pred_logpdf_diag=False,
@@ -90,8 +94,8 @@ def setup(config, *, num_tasks_train, num_tasks_val, lengthscale):
         seed=20,
         noise=config["noise"],
         kernel=kernel,
-        num_context=nps.UniformDiscrete(3, 30 * dim_x),
-        num_target=nps.UniformDiscrete(50 * dim_x, 50 * dim_x),
+        num_context=nps.UniformDiscrete(num_context_min, num_context_max),
+        num_target=nps.UniformDiscrete(num_target, num_target),
         num_tasks=num_tasks_val,
         pred_logpdf=True,
         pred_logpdf_diag=True,
@@ -103,8 +107,8 @@ def setup(config, *, num_tasks_train, num_tasks_val, lengthscale):
         seed=30,
         noise=config["noise"],
         kernel=kernel,
-        num_context=nps.UniformDiscrete(3, 30 * dim_x),
-        num_target=nps.UniformDiscrete(50 * dim_x, 50 * dim_x),
+        num_context=nps.UniformDiscrete(num_context_min, num_context_max),
+        num_target=nps.UniformDiscrete(num_target, num_target),
         num_tasks=num_tasks_val,
         pred_logpdf=True,
         pred_logpdf_diag=True,
