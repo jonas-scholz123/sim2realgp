@@ -25,15 +25,16 @@ config = {
     "residual": False,  # Use residual connections?
     "affine": True,  # Use FiLM layers?
     "old": False,
-    "kernel_size": 33,
+    "kernel_size": None,  # Handled by receptive field
     "unet_channels": (64,) * 6,
     # TODO: We should use a stride of 1 in the first layer, but for compatibility
     #    reasons with the models we already trained, we keep it like this.
     "unet_strides": (2,) * 6,
-    "conv_receptive_field": 4,
+    # To capture all correlations, receptive field should be significantly
+    # larger than largest lengthscale. In this case we choose 4 * 0.25 (longest).
+    "conv_receptive_field": 1.0,
+    "conv_channels": 32,
     "margin": 0.1,
-    "conv_channels": 64,
-    "encoder_scales": None,
     "mean_diff": None,
     "transform": None,
     "plot": {
@@ -62,11 +63,12 @@ config = {
     "dim_x": 1,
     "dim_y": 1,
     "batch_size": 16,
-    "lengthscale_sim": 0.25,
+    "lengthscale_sim": 0.2,
     "lengthscales_real": [0.2],
     "kernel": stheno.EQ(),
     "noise": 0.05,
-    "visualise": False,
+    "encoder_scales_learnable": False,
+    "visualise": True,
     "output_path": "./outputs",
     "train_path": "/train",
     "sim_model_path": "/sim_trained",
@@ -74,11 +76,11 @@ config = {
 
 dim_x = config["dim_x"]
 dim_y = config["dim_y"]
-if dim_x == 1:
-    config["points_per_unit"] = 64
-elif dim_x == 2:
-    # Reduce the PPU to reduce memory consumption.
-    config["points_per_unit"] = 32
-    # Since the PPU is reduced, we can also take off a layer of the UNet.
-    config["unet_strides"] = config["unet_strides"][:-1]
-    config["unet_channels"] = config["unet_channels"][:-1]
+
+# Sim lengthscale: 0.25
+# Real lengthscales: [0.2, 0.1, 0.05]
+
+# PPU needs to be bigger than the smallest wiggle. For the smallest lengthscale (0.05),
+# this corresponds to at least 20.
+config["points_per_unit"] = 64
+config["encoder_scales"] = 1 / config["points_per_unit"]

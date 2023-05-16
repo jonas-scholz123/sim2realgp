@@ -33,6 +33,7 @@ if config["wandb"]:
             "stage": "sim",
             "sim_lengthscale": config["lengthscale_sim"],
             "num_layers": config["num_layers"],
+            "layer_capacity": config["conv_channels"],
             "affine": config["affine"],
             "residual": config["residual"],
             "old": config["old"],
@@ -61,11 +62,14 @@ model = construct_convgnp(
     conv_receptive_field=config["conv_receptive_field"],
     margin=config["margin"],
     encoder_scales=config["encoder_scales"],
+    encoder_scales_learnable=config["encoder_scales_learnable"],
     transform=config["transform"],
     affine=config["affine"],
     residual=config["residual"],
     kernel_size=config["kernel_size"],
 )
+
+print(model)
 
 
 objective = partial(

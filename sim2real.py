@@ -49,6 +49,7 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
         conv_receptive_field=config["conv_receptive_field"],
         margin=config["margin"],
         encoder_scales=config["encoder_scales"],
+        encoder_scales_learnable=config["encoder_scales_learnable"],
         transform=config["transform"],
         affine=config["affine"],
         residual=config["residual"],
@@ -77,6 +78,9 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
 
     sim_l = config["lengthscale_sim"]
 
+    if config["real_inf_tasks"]:
+        num_tasks = "inf"
+
     if config["wandb"]:
         run = wandb.init(
             project="thesis",
@@ -85,7 +89,6 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
                 "sim_lengthscale": config["lengthscale_sim"],
                 "real_lengthscale": real_lengthscale,
                 "real_num_tasks": num_tasks,
-                "real_inf_tasks": config["real_inf_tasks"],
                 "tuner": tuner.name(),
             },
             name=f"tune {sim_l} -> {real_lengthscale}, {num_tasks} tasks",
