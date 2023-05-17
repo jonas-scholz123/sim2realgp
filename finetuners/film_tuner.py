@@ -3,7 +3,7 @@ from torch import nn
 from typing import Tuple
 import lab as B
 
-from components.convnet import FiLM
+from components.film import FiLM
 
 
 class FilmTuner(Tuner):

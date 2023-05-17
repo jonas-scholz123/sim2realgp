@@ -12,7 +12,7 @@ config = {
         "rate": None,
         "also_ar": False,
     },
-    "wandb": True,
+    "wandb": False,
     "model": "convcnp",
     "epsilon": 1e-8,
     "epsilon_start": 1e-2,
@@ -33,23 +33,23 @@ config = {
     # To capture all correlations, receptive field should be significantly
     # larger than largest lengthscale. In this case we choose 4 * 0.25 (longest).
     "conv_receptive_field": 1.0,
-    "conv_channels": 8,
+    "conv_channels": 32,
     "margin": 0.1,
     "mean_diff": None,
     "transform": None,
-    "plot": {
-        1: {"range": (-1, 1), "axvline": [2]},
-        2: {"range": ((-1, 1), (-1, 1))},
-    },
     # "plot": {
-    #     1: {"range": (-2, 4), "axvline": [2]},
-    #     2: {"range": ((-2, 4), (-2, 4))},
+    #    1: {"range": (-1, 1), "axvline": [2]},
+    #    2: {"range": ((-1, 1), (-1, 1))},
     # },
+    "plot": {
+        1: {"range": (-2, 4), "axvline": [2]},
+        2: {"range": ((-2, 4), (-2, 4))},
+    },
     # Performance of the ConvGNP is sensitive to this parameter. Moreover, it
     # doesn't make sense to set it to a value higher of the last hidden layer of
     # the CNN architecture. We therefore set it to 64.
     "num_basis_functions": 64,
-    "arch": "conv",
+    "arch": "unet",  # unet/conv
     "device": "cpu",
     "normalise_obj": True,
     "num_samples": 20,

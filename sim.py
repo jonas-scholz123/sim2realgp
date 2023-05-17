@@ -32,6 +32,7 @@ if config["wandb"]:
         project="thesis",
         config={
             "stage": "sim",
+            "arch": config["arch"],
             "sim_lengthscale": config["lengthscale_sim"],
             "num_layers": config["num_layers"],
             "layer_capacity": config["conv_channels"],
@@ -115,10 +116,11 @@ for i in tqdm(range(config["num_epochs"])):
         save_model(model, val_lik, i + 1, best_model_path)
 
     # Visualise a few predictions by the model.
+    gcv = gen_cv()
     for j in range(2):
         visualise(
             model,
-            gen_cv(),
+            gcv,
             path=f"{train_plot_dir}/train-epoch-{i + 1:03d}-{j + 1}.pdf",
             config=config,
         )
