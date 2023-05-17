@@ -39,13 +39,9 @@ class ConvNet(nn.Module):
             receptive_field = receptive_points / points_per_unit
             self.kernel = kernel
 
-        layers = [
-            nn.Conv1d(
-                in_channels, channels, self.kernel, padding=(self.kernel - 1) // 2
-            ),
-            nn.ReLU(),
-            nn.Conv1d(channels, channels, self.kernel, padding=(self.kernel - 1) // 2),
-        ]
+        padding = (self.kernel - 1) // 2
+
+        layers = [nn.Conv1d(in_channels, channels, self.kernel, padding=padding)]
 
         layers.extend(
             [
@@ -56,21 +52,11 @@ class ConvNet(nn.Module):
                     affine=affine,
                     residual=residual,
                 )
-                for _ in range(max(num_layers - 4, 1))
+                for _ in range(max(num_layers - 2, 1))
             ]
         )
 
-        layers.extend(
-            [
-                nn.Conv1d(
-                    channels, channels, self.kernel, padding=(self.kernel - 1) // 2
-                ),
-                nn.ReLU(),
-                nn.Conv1d(
-                    channels, out_channels, self.kernel, padding=(self.kernel - 1) // 2
-                ),
-            ]
-        )
+        layers.append(nn.Conv1d(channels, out_channels, self.kernel, padding=padding))
 
         self.net = nn.Sequential(*layers)
 
