@@ -18,7 +18,7 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
     sim_exp_dir = get_exp_dir(config)
 
     # simulator pretrained + finetuned on real data of given lengthscale.
-    tuned_exp_dir = get_exp_dir(config, real_lengthscale, num_tasks)
+    tuned_exp_dir = get_exp_dir(config, real_lengthscale, num_tasks, tuner_type)
     print(f"Tuned: {tuned_exp_dir}")
 
     train_plot_dir, best_model_path, latest_model_path, model_dir = get_paths(
@@ -70,6 +70,8 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
     model = load_weights(model, best_pretrained_path)
 
     batches = list(gen_train.epoch())
+    batches = batches * (config["epoch_size"] // (len(batches) * config["batch_size"]))
+    print(f"Using {len(batches)} batches.")
 
     tuner = get_tuner(tuner_type)(
         model, objective, torch.optim.Adam, config["tune_rate"]
