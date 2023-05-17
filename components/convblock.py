@@ -1,6 +1,7 @@
 import torch
 
 from components.film import FiLM
+from torch import nn
 
 
 class ConvBlock(torch.nn.Module):
