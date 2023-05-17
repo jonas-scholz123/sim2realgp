@@ -27,6 +27,7 @@ B.set_global_device(device)
 
 
 if config["wandb"]:
+    lengthscale = config["lengthscale_sim"]
     wandb.init(
         project="thesis",
         config={
@@ -38,6 +39,7 @@ if config["wandb"]:
             "residual": config["residual"],
             "old": config["old"],
         },
+        name=f"sim {lengthscale}",
     )
 
 gen_train, gen_cv, gens_eval = setup(
