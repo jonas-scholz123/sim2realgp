@@ -341,6 +341,7 @@ def construct_convgnp(
                 activations=unet_activations,
                 resize_convs=unet_resize_convs,
                 resize_conv_interp_method=unet_resize_conv_interp_method,
+                affine=affine,
             )
         else:
             lv_conv = lambda x: x
@@ -354,6 +355,7 @@ def construct_convgnp(
             activations=unet_activations,
             resize_convs=unet_resize_convs,
             resize_conv_interp_method=unet_resize_conv_interp_method,
+            affine=affine,
         )
         receptive_field = conv.receptive_field / points_per_unit
     elif "conv" in conv_arch:
