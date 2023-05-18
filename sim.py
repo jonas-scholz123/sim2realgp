@@ -38,7 +38,6 @@ if config["wandb"]:
             "layer_capacity": config["conv_channels"],
             "affine": config["affine"],
             "residual": config["residual"],
-            "old": config["old"],
         },
         name=f"sim {lengthscale}",
     )
