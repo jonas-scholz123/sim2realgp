@@ -333,7 +333,6 @@ def construct_convgnp(
     if "unet" in conv_arch:
         if dim_lv > 0:
             lv_conv = UNet(
-                dim=dim_x,
                 in_channels=lv_in_channels,
                 out_channels=lv_out_channels,
                 channels=unet_channels,
@@ -342,15 +341,11 @@ def construct_convgnp(
                 activations=unet_activations,
                 resize_convs=unet_resize_convs,
                 resize_conv_interp_method=unet_resize_conv_interp_method,
-                separable="sep" in conv_arch,
-                residual="res" in conv_arch,
-                dtype=dtype,
             )
         else:
             lv_conv = lambda x: x
 
         conv = UNet(
-            dim=dim_x,
             in_channels=in_channels,
             out_channels=out_channels,
             channels=unet_channels,
@@ -359,9 +354,6 @@ def construct_convgnp(
             activations=unet_activations,
             resize_convs=unet_resize_convs,
             resize_conv_interp_method=unet_resize_conv_interp_method,
-            separable="sep" in conv_arch,
-            residual="res" in conv_arch,
-            dtype=dtype,
         )
         receptive_field = conv.receptive_field / points_per_unit
     elif "conv" in conv_arch:

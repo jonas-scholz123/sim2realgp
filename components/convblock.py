@@ -10,6 +10,7 @@ class ConvBlock(torch.nn.Module):
         in_channels: int,
         out_channels: int,
         kernel: int,
+        stride: int = 1,
         affine: bool = False,
         residual: bool = True,
     ) -> None:
@@ -18,9 +19,8 @@ class ConvBlock(torch.nn.Module):
         padding = (kernel - 1) // 2
 
         self.activation = nn.ReLU()
-        self.conv = nn.Conv1d(
-            in_channels, out_channels, kernel, stride=1, padding=padding
-        )
+
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel, stride, padding)
 
         self.residual = residual
 

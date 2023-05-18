@@ -7,6 +7,7 @@ from functools import partial
 import lab as B
 
 from components.convblock import ConvBlock
+from components.transpose_block import TransposeConvBlock
 
 
 class UNet(nn.Module):
@@ -45,21 +46,17 @@ class UNet(nn.Module):
 
     def __init__(
         self,
-        dim: int,
         in_channels: int,
         out_channels: int,
         channels: Tuple[int, ...] = (8, 16, 16, 32, 32, 64),
         kernels: Union[int, Tuple[Union[int, Tuple[int, ...]], ...]] = 5,
         strides: Union[int, Tuple[int, ...]] = 2,
         activations: Union[None, object, Tuple[object, ...]] = None,
-        separable: bool = False,
-        residual: bool = False,
         resize_convs: bool = False,
         resize_conv_interp_method: str = "nearest",
-        dtype=None,
     ):
         super().__init__()
-        self.dim = dim
+        self.dim = 1
 
         # If `kernel` is an integer, repeat it for every layer.
         if not isinstance(kernels, (tuple, list)):
@@ -126,31 +123,6 @@ class UNet(nn.Module):
                 self.receptive_fields.append(self.receptive_fields[-1] + (kernel - 1))
         self.receptive_field = self.receptive_fields[-1]
 
-        # If none of the fancy features are used, use the standard `nn.Conv` for
-        # compatibility with trained models. For the same reason we also don't use the
-        #   `activation` keyword.
-        # TODO: In the future, use `self.nps.Conv` everywhere and use the `activation`
-        #   keyword.
-        if residual or separable or any(isinstance(k, tuple) for k in kernels):
-            Conv = partial(
-                self.nps.Conv,
-                dim=dim,
-                residual=residual,
-                separable=separable,
-            )
-        else:
-
-            def Conv(*, stride=1, transposed=False, kernel_size=None, **kw_args):
-                padding = kernel_size // 2
-                kw_args["kernel_size"] = kernel_size
-                kw_args["padding"] = padding
-                if transposed and stride > 1:
-                    kw_args["output_padding"] = stride // 2
-                if transposed:
-                    return nn.ConvTranspose1d(stride=stride, **kw_args)
-                else:
-                    return nn.Conv1d(stride=stride, **kw_args)
-
         def construct_before_turn_layer(i):
             # Determine the configuration of the layer.
             ci = ((in_channels,) + tuple(channels))[i]
@@ -160,38 +132,18 @@ class UNet(nn.Module):
 
             if s == 1:
                 # Just a regular convolutional layer.
-                return Conv(
-                    in_channels=ci,
-                    out_channels=co,
-                    kernel_size=k,
-                    dtype=dtype,
+                return ConvBlock(ci, co, k)
+
+            # This is a downsampling layer.
+            if self.receptive_fields[i] % 2 == 1:
+                # Perform average pooling if the previous receptive field is odd.
+                return nn.Sequential(
+                    ConvBlock(ci, co, k),
+                    nn.AvgPool1d(s, s),
                 )
-            else:
-                # This is a downsampling layer.
-                if self.receptive_fields[i] % 2 == 1:
-                    # Perform average pooling if the previous receptive field is odd.
-                    return nn.Sequential(
-                        Conv(
-                            in_channels=ci,
-                            out_channels=co,
-                            kernel_size=k,
-                            stride=1,
-                            dtype=dtype,
-                        ),
-                        nn.AvgPool1d(
-                            kernel_size=s,
-                            stride=s,
-                        ),
-                    )
-                else:
-                    # Perform subsampling if the previous receptive field is even.
-                    return Conv(
-                        in_channels=ci,
-                        out_channels=co,
-                        kernel_size=k,
-                        stride=s,
-                        dtype=dtype,
-                    )
+
+            # Perform subsampling if the previous receptive field is even.
+            return ConvBlock(ci, co, k, s)
 
         def construct_after_turn_layer(i):
             # Determine the configuration of the layer.
@@ -207,34 +159,16 @@ class UNet(nn.Module):
 
             if s == 1:
                 # Just a regular convolutional layer.
-                return Conv(
-                    in_channels=ci,
-                    out_channels=co,
-                    kernel_size=k,
-                    dtype=dtype,
+                return ConvBlock(ci, co, k)
+
+            # This is an upsampling layer.
+            if resize_convs:
+                return nn.Sequential(
+                    nn.Upsample(scale_factor=s, mode=resize_conv_interp_method),
+                    ConvBlock(ci, co, k),
                 )
-            else:
-                # This is an upsampling layer.
-                if resize_convs:
-                    return nn.Sequential(
-                        nn.Upsample(scale_factor=s, mode=resize_conv_interp_method),
-                        Conv(
-                            in_channels=ci,
-                            out_channels=co,
-                            kernel_size=k,
-                            stride=1,
-                            dtype=dtype,
-                        ),
-                    )
-                else:
-                    return Conv(
-                        in_channels=ci,
-                        out_channels=co,
-                        kernel_size=k,
-                        stride=s,
-                        transposed=True,
-                        dtype=dtype,
-                    )
+
+            return TransposeConvBlock(ci, co, k, s)
 
         self.before_turn_layers = nn.ModuleList(
             [construct_before_turn_layer(i) for i in range(len(channels))]
