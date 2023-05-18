@@ -3,6 +3,7 @@ from torch import nn
 from lab import B
 
 from typing import Tuple
+from config import config
 
 
 class FreezeTuner(Tuner):
@@ -11,8 +12,19 @@ class FreezeTuner(Tuner):
         super().__init__(initial_model, objective, opt, lr)
 
     def modify_model(self, initial_model: nn.Module) -> nn.Module:
-        for layer in initial_model.decoder[0].net[-self.num_layers_tuned :]:
-            layer.requires_grad_(False)
+        initial_model._requires_grad_(False)
+
+        if config["arch"] == "conv":
+            for layer in initial_model.decoder[0].net[-self.num_layers_tuned :]:
+                layer.requires_grad_(True)
+
+        elif config["arch"] == "unet":
+            unet = initial_model.decoder[0]
+            for layer in unet.after_turn_layers[-self.num_layers_tuned :]:
+                layer.requires_grad_(True)
+
+            unet.final_linear.requires_grad_(True)
+
         return initial_model
 
     def train_on_batch(self, batch, state) -> Tuple[any, float]:

@@ -1,7 +1,7 @@
 import stheno
 import warnings
 
-from finetuners.get_tuner import TunerType
+from finetuners.tuner_types import TunerType
 from matrix.util import ToDenseWarning
 
 warnings.filterwarnings("ignore", category=ToDenseWarning)
@@ -10,7 +10,7 @@ config = {
     ##############################################
     # Misc.
     ##############################################
-    "wandb": False,
+    "wandb": True,
     "visualise": True,
     "epsilon": 1e-8,
     "epsilon_start": 1e-2,
@@ -46,10 +46,10 @@ config = {
     ##############################################
     # UNet Specific Architecture.
     ##############################################
-    "unet_resize_convs": False,
+    "unet_resize_convs": True,
     "unet_resize_conv_interp_method": "nearest",
-    "unet_channels": (64,) * 6,
-    "unet_strides": (1,) + (2,) * 5,
+    "unet_channels": (64,) * 5,
+    "unet_strides": (1,) + (2,) * 4,
     # Performance of the ConvGNP is sensitive to this parameter. Moreover, it
     # doesn't make sense to set it to a value higher of the last hidden layer of
     # the CNN architecture. We therefore set it to 64.
@@ -68,7 +68,7 @@ config = {
     # When using different-size real task sets, want one epoch to be consistent
     # e.g. 16 real tasks means epochs are too small to learn.
     "epoch_size": 2**10,
-    "real_nums_tasks_train": [2**4, 2**6, 2**8],
+    "real_nums_tasks_train": [2**4, 2**8, 2**10],
     "real_num_tasks_val": 2**8,
     # If False, the same data is re-used each episode. Else, new data is generated
     # and the total number of datapoints is num_epochs * real_num_task_train
@@ -76,7 +76,7 @@ config = {
     "noise": 0.05,
     "kernel": stheno.EQ(),
     "lengthscale_sim": 0.25,
-    "lengthscales_real": [0.05],
+    "lengthscales_real": [0.05, 0.1, 0.2],
     "dim_x": 1,
     "dim_y": 1,
     # Directories.

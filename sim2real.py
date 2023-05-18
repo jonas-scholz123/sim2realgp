@@ -56,6 +56,8 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
         affine=config["affine"],
         residual=config["residual"],
         kernel_size=config["kernel_size"],
+        unet_resize_convs=config["unet_resize_convs"],
+        unet_resize_conv_interp_method=config["unet_resize_conv_interp_method"],
     )
 
     objective = partial(

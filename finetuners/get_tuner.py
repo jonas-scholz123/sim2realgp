@@ -3,12 +3,7 @@ from finetuners.film_tuner import FilmTuner
 from finetuners.naive_tuner import NaiveTuner
 from finetuners.freeze_tuner import FreezeTuner
 from finetuners.tuner import Tuner
-
-
-class TunerType(Enum):
-    naive = 1
-    film = 2
-    freeze = 3
+from finetuners.tuner_types import TunerType
 
 
 def get_tuner(tt: TunerType) -> Tuner:
