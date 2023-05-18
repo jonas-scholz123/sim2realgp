@@ -4,6 +4,7 @@ import neuralprocesses.torch as nps  # This fixes inspection below.
 from components.convnet import ConvNet
 
 from components.unet import UNet
+import lab as B
 
 # from neuralprocesses.torch import UNet
 
@@ -440,5 +441,7 @@ def construct_convgnp(
 
     # Set attribute `receptive_field`.
     model.receptive_field = receptive_field
+    device = B.ActiveDevice.active_name
+    model.to(device)
 
     return model

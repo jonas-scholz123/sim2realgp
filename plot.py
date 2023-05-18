@@ -100,11 +100,11 @@ def visualise_1d(model, gen, *, path, config, predict):
         # Plot prediction by ground truth.
         if hasattr(gen, "kernel") and config["dim_y"] == 1:
             f = stheno.GP(gen.kernel)
-            # Make sure that everything is of `float64`s and on the GPU.
-            noise = B.to_active_device(B.cast(torch.float64, gen.noise))
-            xc = B.cast(torch.float64, nps.batch_xc(batch, 0)[0, 0])
-            yc = B.cast(torch.float64, nps.batch_yc(batch, 0)[0])
-            x = B.cast(torch.float64, x)
+            # Make sure that everything is of `float32`s and on the GPU.
+            noise = B.to_active_device(B.cast(torch.float32, gen.noise))
+            xc = B.cast(torch.float32, nps.batch_xc(batch, 0)[0, 0])
+            yc = B.cast(torch.float32, nps.batch_yc(batch, 0)[0])
+            x = B.cast(torch.float32, x)
             # Compute posterior GP.
             f_post = f | (f(xc, noise), yc)
             mean, lower, upper = f_post(x).marginal_credible_bounds()
