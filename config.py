@@ -49,7 +49,7 @@ config = {
     # doesn't make sense to set it to a value higher of the last hidden layer of
     # the CNN architecture. We therefore set it to 64.
     "num_basis_functions": 64,
-    "arch": "unet",  # unet/conv
+    "arch": "conv",  # unet/conv
     "device": "cpu",
     "normalise_obj": True,
     "num_samples": 20,

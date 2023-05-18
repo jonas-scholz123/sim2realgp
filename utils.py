@@ -41,10 +41,11 @@ def get_exp_dir(config, l_real=None, num_tasks_real=None, tuner_type=None):
     dim_x = config["dim_x"]
     dim_y = config["dim_y"]
     model_str = config["model"]
+    arch = config["arch"]
     l_pretrained = config["lengthscale_sim"]
     noise = config["noise"]
 
-    exp_dir = f"./outputs/x_{dim_x}_y_{dim_y}/{model_str}/l_sim_{l_pretrained:.3g}/noise_{noise:.3g}"
+    exp_dir = f"./outputs/x_{dim_x}_y_{dim_y}/{model_str}_{arch}/l_sim_{l_pretrained:.3g}/noise_{noise:.3g}"
     if l_real is None or num_tasks_real is None or tuner_type is None:
         # We are dealing with a pretrained "sim only" model.
         return f"{exp_dir}/sim"
