@@ -46,10 +46,10 @@ config = {
     ##############################################
     # UNet Specific Architecture.
     ##############################################
+    "unet_resize_convs": False,
+    "unet_resize_conv_interp_method": "nearest",
     "unet_channels": (64,) * 6,
     "unet_strides": (1,) + (2,) * 5,
-    "unet_resize_convs": True,
-    "unet_resize_conv_interp_method": "nearest",
     # Performance of the ConvGNP is sensitive to this parameter. Moreover, it
     # doesn't make sense to set it to a value higher of the last hidden layer of
     # the CNN architecture. We therefore set it to 64.

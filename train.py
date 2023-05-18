@@ -30,7 +30,6 @@ def train(state, model, opt, objective, gen, *, fix_noise):
         opt.step()
 
     vals = B.concat(*vals)
-    print("Loglik (T)", with_err(vals, and_lower=True))
     return state, B.mean(vals)
 
 
@@ -57,12 +56,6 @@ def evaluate(state, model, objective, gen):
 
         # Report numbers.
         vals = B.concat(*vals)
-        print("Loglik (V)", with_err(vals, and_lower=True))
-        if kls:
-            print("KL (full)", with_err(B.concat(*kls), and_upper=True))
-        if kls_diag:
-            print("KL (diag)", with_err(B.concat(*kls_diag), and_upper=True))
-
         return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
 
 

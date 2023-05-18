@@ -89,7 +89,9 @@ fix_noise = None
 
 best_eval_lik = -np.infty
 
-for i in tqdm(range(config["num_epochs"])):
+pbar = tqdm(range(config["num_epochs"]))
+
+for i in pbar:
     B.epsilon = config["epsilon_start"] if i == 0 else config["epsilon"]
 
     state, train_lik = train(
@@ -104,15 +106,16 @@ for i in tqdm(range(config["num_epochs"])):
     # The epoch is done. Now evaluate.
     state, val_lik = evaluate(state, model, objective, gen_cv())
 
+    measures = {"train_lik": train_lik, "val_likelihood": val_lik}
+    pbar.set_postfix(measures)
     if config["wandb"]:
-        wandb.log({"train_lik": train_lik, "val_likelihood": val_lik})
+        wandb.log(measures)
 
     # Save current model.
     save_model(model, val_lik, i + 1, latest_model_path)
 
     # Check if the model is the new best. If so, save it.
     if val_lik > best_eval_lik:
-        print("New best model!")
         best_eval_lik = val_lik
         save_model(model, val_lik, i + 1, best_model_path)
 

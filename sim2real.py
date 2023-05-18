@@ -14,6 +14,8 @@ from finetuners.get_tuner import get_tuner
 
 
 def sim2real(tuner_type, real_lengthscale, num_tasks):
+    device = config["device"]
+    B.set_global_device(device)
     # simulator only.
     sim_exp_dir = get_exp_dir(config)
 
@@ -101,31 +103,37 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
 
     state, val_lik = evaluate(state, tuner.model, objective, gen_cv())
     state, train_lik = evaluate(state, tuner.model, objective, gen_train)
+
+    measures = {"train_lik": train_lik, "val_likelihood": val_lik}
+
     if config["wandb"]:
-        run.log({"train_lik": train_lik, "val_likelihood": val_lik})
+        run.log(measures)
 
     best_eval_lik = -float("inf")
 
-    for i in range(config["num_epochs"]):
+    pbar = tqdm(range(config["num_epochs"]))
+    for i in pbar:
         B.epsilon = config["epsilon_start"] if i == 0 else config["epsilon"]
 
-        print("epoch: ", i)
         train_lik = 0
-        for batch in tqdm(batches):
+        for batch in batches:
             state, batch_lik = tuner.train_on_batch(batch, state)
             train_lik -= batch_lik / len(batches)
+        train_lik = float(train_lik)
 
         # The epoch is done. Now evaluate.
         state, val_lik = evaluate(state, model, objective, gen_cv())
+
+        measures = {"train_lik": train_lik, "val_likelihood": val_lik}
+        pbar.set_postfix(measures)
         if config["wandb"]:
-            run.log({"train_lik": train_lik, "val_likelihood": val_lik})
+            run.log(measures)
 
         # Save current model.
         save_model(model, val_lik, i + 1, latest_model_path)
 
         # Check if the model is the new best. If so, save it.
         if val_lik > best_eval_lik:
-            print("New best model!")
             best_eval_lik = val_lik
             save_model(model, val_lik, i + 1, best_model_path)
 
