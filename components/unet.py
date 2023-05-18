@@ -217,12 +217,7 @@ class UNet(nn.Module):
                 # This is an upsampling layer.
                 if resize_convs:
                     return nn.Sequential(
-                        nn.UpSampling(
-                            dim=dim,
-                            size=s,
-                            interp_method=resize_conv_interp_method,
-                            dtype=dtype,
-                        ),
+                        nn.Upsample(scale_factor=s, mode=resize_conv_interp_method),
                         Conv(
                             in_channels=ci,
                             out_channels=co,
