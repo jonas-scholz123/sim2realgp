@@ -70,6 +70,8 @@ model = construct_convgnp(
     affine=config["affine"],
     residual=config["residual"],
     kernel_size=config["kernel_size"],
+    unet_resize_convs=config["unet_resize_convs"],
+    unet_resize_conv_interp_method=config["unet_resize_conv_interp_method"],
 )
 
 print(model)

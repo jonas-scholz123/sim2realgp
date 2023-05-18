@@ -27,9 +27,9 @@ config = {
     "old": False,
     "kernel_size": None,  # Handled by receptive field
     "unet_channels": (64,) * 6,
-    # TODO: We should use a stride of 1 in the first layer, but for compatibility
-    #    reasons with the models we already trained, we keep it like this.
-    "unet_strides": (2,) * 6,
+    "unet_strides": (1,) + (2,) * 5,
+    "unet_resize_convs": True,
+    "unet_resize_conv_interp_method": "nearest",
     # To capture all correlations, receptive field should be significantly
     # larger than largest lengthscale. In this case we choose 4 * 0.25 (longest).
     "conv_receptive_field": 1.0,
@@ -49,7 +49,7 @@ config = {
     # doesn't make sense to set it to a value higher of the last hidden layer of
     # the CNN architecture. We therefore set it to 64.
     "num_basis_functions": 64,
-    "arch": "conv",  # unet/conv
+    "arch": "unet",  # unet/conv
     "device": "cpu",
     "normalise_obj": True,
     "num_samples": 20,
