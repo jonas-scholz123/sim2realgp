@@ -85,7 +85,6 @@ objective = partial(
 opt = torch.optim.Adam(model.parameters(), config["rate"])
 
 state = B.create_random_state(torch.float32, seed=0)
-fix_noise = None
 
 best_eval_lik = -np.infty
 
@@ -94,30 +93,35 @@ pbar = tqdm(range(config["num_epochs"]))
 for i in pbar:
     B.epsilon = config["epsilon_start"] if i == 0 else config["epsilon"]
 
-    state, train_lik = train(
+    state, train_lik, true_train_lik = train(
         state,
         model,
         opt,
         objective,
         gen_train,
-        fix_noise=fix_noise,
     )
 
     # The epoch is done. Now evaluate.
-    state, val_lik = evaluate(state, model, objective, gen_cv())
+    state, val_lik, true_val_lik = evaluate(state, model, objective, gen_cv())
 
-    measures = {"train_lik": train_lik, "val_likelihood": val_lik}
+    measures = {
+        "train_lik": train_lik,
+        "val_lik": val_lik,
+    }
+
     pbar.set_postfix(measures)
     if config["wandb"]:
+        measures["true_train_lik"] = true_train_lik
+        measures["true_val_lik"] = true_val_lik
         wandb.log(measures)
 
     # Save current model.
-    save_model(model, val_lik, i + 1, latest_model_path)
+    save_model(model, true_val_lik, i + 1, latest_model_path)
 
     # Check if the model is the new best. If so, save it.
-    if val_lik > best_eval_lik:
-        best_eval_lik = val_lik
-        save_model(model, val_lik, i + 1, best_model_path)
+    if true_val_lik > best_eval_lik:
+        best_eval_lik = true_val_lik
+        save_model(model, true_val_lik, i + 1, best_model_path)
 
     # Visualise a few predictions by the model.
     gcv = gen_cv()

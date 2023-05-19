@@ -56,7 +56,8 @@ config = {
     "num_basis_functions": 64,
     "encoder_scales_learnable": False,
     # Optimisation
-    "tuners": [TunerType.naive, TunerType.film, TunerType.freeze],
+    # "tuners": [TunerType.freeze, TunerType.naive, TunerType.film],
+    "tuners": [TunerType.naive],
     "num_epochs": 30,
     "batch_size": 16,
     "rate": 3e-4,
@@ -68,7 +69,8 @@ config = {
     # When using different-size real task sets, want one epoch to be consistent
     # e.g. 16 real tasks means epochs are too small to learn.
     "epoch_size": 2**10,
-    "real_nums_tasks_train": [2**4, 2**8, 2**10],
+    # "real_nums_tasks_train": [2**4, 2**8, 2**10],
+    "real_nums_tasks_train": [2**4],
     "real_num_tasks_val": 2**8,
     # If False, the same data is re-used each episode. Else, new data is generated
     # and the total number of datapoints is num_epochs * real_num_task_train
@@ -76,7 +78,8 @@ config = {
     "noise": 0.05,
     "kernel": stheno.EQ(),
     "lengthscale_sim": 0.25,
-    "lengthscales_real": [0.05, 0.1, 0.2],
+    # "lengthscales_real": [0.05, 0.1, 0.2],
+    "lengthscales_real": [0.05],
     "dim_x": 1,
     "dim_y": 1,
     # Directories.

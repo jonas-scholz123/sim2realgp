@@ -92,6 +92,7 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
             project="thesis",
             config={
                 "stage": "tuning",
+                "arch": config["arch"],
                 "sim_lengthscale": config["lengthscale_sim"],
                 "real_lengthscale": real_lengthscale,
                 "real_num_tasks": num_tasks,
@@ -103,12 +104,18 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
 
     print(f"Tuning using {tuner}")
 
-    state, val_lik = evaluate(state, tuner.model, objective, gen_cv())
-    state, train_lik = evaluate(state, tuner.model, objective, gen_train)
-
-    measures = {"train_lik": train_lik, "val_likelihood": val_lik}
-
     if config["wandb"]:
+        state, val_lik, true_val_lik = evaluate(state, tuner.model, objective, gen_cv())
+        state, train_lik, true_train_lik = evaluate(
+            state, tuner.model, objective, gen_train
+        )
+
+        measures = {
+            "train_lik": train_lik,
+            "val_lik": val_lik,
+            "true_train_lik": true_train_lik,
+            "true_val_lik": true_val_lik,
+        }
         run.log(measures)
 
     best_eval_lik = -float("inf")
@@ -118,17 +125,24 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
         B.epsilon = config["epsilon_start"] if i == 0 else config["epsilon"]
 
         train_lik = 0
+        true_train_lik = 0
         for batch in batches:
-            state, batch_lik = tuner.train_on_batch(batch, state)
-            train_lik -= batch_lik / len(batches)
-        train_lik = float(train_lik)
+            state, batch_lik, batch_true_lik = tuner.train_on_batch(batch, state)
+            train_lik += batch_lik / len(batches)
+            true_train_lik += batch_true_lik / len(batches)
 
         # The epoch is done. Now evaluate.
-        state, val_lik = evaluate(state, model, objective, gen_cv())
+        state, val_lik, true_val_lik = evaluate(state, model, objective, gen_cv())
 
-        measures = {"train_lik": train_lik, "val_likelihood": val_lik}
+        measures = {
+            "train_lik": train_lik,
+            "val_lik": val_lik,
+        }
+
         pbar.set_postfix(measures)
         if config["wandb"]:
+            measures["true_train_lik"] = true_train_lik
+            measures["true_val_lik"] = true_val_lik
             run.log(measures)
 
         # Save current model.

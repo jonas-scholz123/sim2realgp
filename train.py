@@ -5,38 +5,49 @@ Utility functions used for training
 import neuralprocesses.torch as nps
 import torch
 import lab as B
-import wandb
+import numpy as np
 
-from utils import with_err
+from typing import Tuple
 
 
-def train(state, model, opt, objective, gen, *, fix_noise):
+def train(state, model, opt, objective, gen):
     """Train for an epoch."""
     vals = []
+    gp_vals = []
     for batch in gen.epoch():
-        state, obj = objective(
-            state,
-            model,
-            batch["contexts"],
-            batch["xt"],
-            batch["yt"],
-            fix_noise=fix_noise,
-        )
-        vals.append(B.to_numpy(obj))
-        # Be sure to negate the output of `objective`.
-        val = -B.mean(obj)
-        opt.zero_grad(set_to_none=True)
-        val.backward()
-        opt.step()
+        state, val, gp_val = train_on_batch(state, model, opt, objective, batch)
+        vals.append(val)
+        gp_vals.append(gp_val)
 
-    vals = B.concat(*vals)
-    return state, B.mean(vals)
+    return state, np.mean(vals), np.mean(gp_vals)
+
+
+def train_on_batch(state, model, opt, objective, batch) -> Tuple[any, float]:
+    state, obj = objective(
+        state,
+        model,
+        batch["contexts"],
+        batch["xt"],
+        batch["yt"],
+    )
+    val = -B.mean(obj)
+    val.backward()
+    opt.step()
+    opt.zero_grad(set_to_none=True)
+
+    if "pred_logpdf" in batch:
+        n = nps.num_data(batch["xt"], batch["yt"])
+        gp_val = B.mean(batch["pred_logpdf"] / n)
+    else:
+        gp_val = 0.0
+
+    return state, float(-val), float(gp_val)
 
 
 def evaluate(state, model, objective, gen):
     """Perform evaluation."""
     with torch.no_grad():
-        vals, kls, kls_diag = [], [], []
+        vals, gp_vals = [], []
         for batch in gen.epoch():
             state, obj = objective(
                 state,
@@ -47,16 +58,20 @@ def evaluate(state, model, objective, gen):
             )
 
             # Save numbers.
-            n = nps.num_data(batch["xt"], batch["yt"])
             vals.append(B.to_numpy(obj))
             if "pred_logpdf" in batch:
-                kls.append(B.to_numpy(batch["pred_logpdf"] / n - obj))
-            if "pred_logpdf_diag" in batch:
-                kls_diag.append(B.to_numpy(batch["pred_logpdf_diag"] / n - obj))
+                n = nps.num_data(batch["xt"], batch["yt"])
+                gp_vals.append(B.to_numpy(batch["pred_logpdf"] / n))
 
         # Report numbers.
         vals = B.concat(*vals)
-        return state, B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals))
+        gp_vals = B.concat(*gp_vals)
+        return (
+            state,
+            B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals)),
+            B.mean(gp_vals),
+        )
+        # return state, B.mean(vals), B.mean(gp_vals)
 
 
 def setup(config, *, num_tasks_train, num_tasks_val, lengthscale):
@@ -77,7 +92,7 @@ def setup(config, *, num_tasks_train, num_tasks_val, lengthscale):
         num_context=nps.UniformDiscrete(num_context_min, num_context_max),
         num_target=nps.UniformDiscrete(num_target, num_target),
         num_tasks=num_tasks_train,
-        pred_logpdf=False,
+        pred_logpdf=True,
         pred_logpdf_diag=False,
         device=config["device"],
     )

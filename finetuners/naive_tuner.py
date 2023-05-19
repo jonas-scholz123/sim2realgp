@@ -17,19 +17,5 @@ class NaiveTuner(Tuner):
         """
         return initial_model
 
-    def train_on_batch(self, batch, state):
-        state, obj = self.objective(
-            state,
-            self.model,
-            batch["contexts"],
-            batch["xt"],
-            batch["yt"],
-        )
-        val = -B.mean(obj)
-        self.opt.zero_grad(set_to_none=True)
-        val.backward()
-        self.opt.step()
-        return state, val
-
     def name(self):
         return "NaiveTuner"

@@ -2,6 +2,8 @@ from abc import abstractmethod, ABC
 from torch import nn
 from typing import Tuple
 
+from train import train_on_batch
+
 
 class Tuner(ABC):
     def __init__(self, initial_model, objective, opt, lr):
@@ -13,9 +15,8 @@ class Tuner(ABC):
     def modify_model(self, initial_model) -> nn.Module:
         return
 
-    @abstractmethod
-    def train_on_batch(self, batch, state) -> Tuple[any, float]:
-        pass
+    def train_on_batch(self, batch, state) -> Tuple[any, float, float]:
+        return train_on_batch(state, self.model, self.opt, self.objective, batch)
 
     @abstractmethod
     def name(self) -> str:

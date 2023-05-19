@@ -17,19 +17,5 @@ class FilmTuner(Tuner):
                 module.requires_grad_(True)
         return initial_model
 
-    def train_on_batch(self, batch, state) -> Tuple[any, float]:
-        state, obj = self.objective(
-            state,
-            self.model,
-            batch["contexts"],
-            batch["xt"],
-            batch["yt"],
-        )
-        val = -B.mean(obj)
-        val.backward()
-        self.opt.step()
-        self.opt.zero_grad(set_to_none=True)
-        return state, val
-
     def name(self) -> str:
         return "FilmTuner"
