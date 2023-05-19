@@ -12,6 +12,7 @@ class ConvBlock(torch.nn.Module):
         kernel: int,
         stride: int = 1,
         affine: bool = False,
+        freeze_affine: bool = True,
         residual: bool = True,
     ) -> None:
         super().__init__()
@@ -25,7 +26,7 @@ class ConvBlock(torch.nn.Module):
         self.residual = residual
 
         if affine:
-            self.affine = FiLM(in_channels)
+            self.affine = FiLM(in_channels, freeze_affine=freeze_affine)
         else:
             self.affine = nn.Identity()
 

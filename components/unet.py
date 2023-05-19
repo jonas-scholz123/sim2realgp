@@ -55,6 +55,7 @@ class UNet(nn.Module):
         resize_convs: bool = False,
         resize_conv_interp_method: str = "nearest",
         affine: bool = False,
+        freeze_affine: bool = True,
     ):
         super().__init__()
         self.dim = 1
@@ -133,18 +134,18 @@ class UNet(nn.Module):
 
             if s == 1:
                 # Just a regular convolutional layer.
-                return ConvBlock(ci, co, k, affine=affine)
+                return ConvBlock(ci, co, k, affine=affine, freeze_affine=freeze_affine)
 
             # This is a downsampling layer.
             if self.receptive_fields[i] % 2 == 1:
                 # Perform average pooling if the previous receptive field is odd.
                 return nn.Sequential(
-                    ConvBlock(ci, co, k, affine=affine),
+                    ConvBlock(ci, co, k, affine=affine, freeze_affine=freeze_affine),
                     nn.AvgPool1d(s, s),
                 )
 
             # Perform subsampling if the previous receptive field is even.
-            return ConvBlock(ci, co, k, s, affine=affine)
+            return ConvBlock(ci, co, k, s, affine=affine, freeze_affine=freeze_affine)
 
         def construct_after_turn_layer(i):
             # Determine the configuration of the layer.
@@ -160,13 +161,13 @@ class UNet(nn.Module):
 
             if s == 1:
                 # Just a regular convolutional layer.
-                return ConvBlock(ci, co, k, affine=affine)
+                return ConvBlock(ci, co, k, affine=affine, freeze_affine=freeze_affine)
 
             # This is an upsampling layer.
             if resize_convs:
                 return nn.Sequential(
                     nn.Upsample(scale_factor=s, mode=resize_conv_interp_method),
-                    ConvBlock(ci, co, k, affine=affine),
+                    ConvBlock(ci, co, k, affine=affine, freeze_affine=freeze_affine),
                 )
 
             return TransposeConvBlock(ci, co, k, s)

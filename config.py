@@ -34,6 +34,7 @@ config = {
     "num_layers": 8,
     "residual": False,  # Use residual connections?
     "affine": True,  # Use FiLM layers?
+    "freeze_affine": True,  # Freeze affine layers during (pre) training?
     "kernel_size": None,  # Handled by receptive field
     # To capture all correlations, receptive field should be significantly
     # larger than largest lengthscale. In this case we choose 4 * 0.25 (longest).

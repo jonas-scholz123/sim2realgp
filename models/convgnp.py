@@ -179,6 +179,7 @@ def construct_convgnp(
     dtype=None,
     nps=nps,
     affine=True,
+    freeze_affine=True,
     residual=True,
     kernel_size=35,
 ):
@@ -343,6 +344,7 @@ def construct_convgnp(
                 resize_convs=unet_resize_convs,
                 resize_conv_interp_method=unet_resize_conv_interp_method,
                 affine=affine,
+                freeze_affine=freeze_affine,
             )
         else:
             lv_conv = lambda x: x
@@ -357,6 +359,7 @@ def construct_convgnp(
             resize_convs=unet_resize_convs,
             resize_conv_interp_method=unet_resize_conv_interp_method,
             affine=affine,
+            freeze_affine=freeze_affine,
         )
         receptive_field = conv.receptive_field / points_per_unit
     elif "conv" in conv_arch:
@@ -369,6 +372,7 @@ def construct_convgnp(
                 points_per_unit=points_per_unit,
                 receptive_field=conv_receptive_field,
                 affine=affine,
+                freeze_affine=freeze_affine,
                 residual=residual,
                 kernel=kernel_size,
             )
@@ -383,6 +387,7 @@ def construct_convgnp(
             points_per_unit=points_per_unit,
             receptive_field=conv_receptive_field,
             affine=affine,
+            freeze_affine=freeze_affine,
             residual=residual,
             kernel=kernel_size,
         )

@@ -54,6 +54,7 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
         encoder_scales_learnable=config["encoder_scales_learnable"],
         transform=config["transform"],
         affine=config["affine"],
+        freeze_affine=config["freeze_affine"],
         residual=config["residual"],
         kernel_size=config["kernel_size"],
         unet_resize_convs=config["unet_resize_convs"],

@@ -20,6 +20,7 @@ class ConvNet(nn.Module):
         points_per_unit: Optional[float] = 1,
         receptive_field: Optional[float] = None,
         affine: bool = True,
+        freeze_affine: bool = True,
         residual: bool = True,
     ):
         super().__init__()
@@ -52,6 +53,7 @@ class ConvNet(nn.Module):
                     out_channels=channels,
                     kernel=self.kernel,
                     affine=affine,
+                    freeze_affine=freeze_affine,
                     residual=residual,
                 )
                 for _ in range(max(num_layers - 2, 1))
