@@ -35,9 +35,9 @@ def train_on_batch(state, model, opt, objective, batch) -> Tuple[any, float]:
     opt.step()
     opt.zero_grad(set_to_none=True)
 
-    if "pred_logpdf" in batch:
+    if "pred_logpdf_diag" in batch:
         n = nps.num_data(batch["xt"], batch["yt"])
-        gp_val = B.mean(batch["pred_logpdf"] / n)
+        gp_val = B.mean(batch["pred_logpdf_diag"] / n)
     else:
         gp_val = 0.0
 
@@ -59,9 +59,9 @@ def evaluate(state, model, objective, gen):
 
             # Save numbers.
             vals.append(B.to_numpy(obj))
-            if "pred_logpdf" in batch:
+            if "pred_logpdf_diag" in batch:
                 n = nps.num_data(batch["xt"], batch["yt"])
-                gp_vals.append(B.to_numpy(batch["pred_logpdf"] / n))
+                gp_vals.append(B.to_numpy(batch["pred_logpdf_diag"] / n))
 
         # Report numbers.
         vals = B.concat(*vals)
@@ -93,7 +93,7 @@ def setup(config, *, num_tasks_train, num_tasks_val, lengthscale):
         num_target=nps.UniformDiscrete(num_target, num_target),
         num_tasks=num_tasks_train,
         pred_logpdf=True,
-        pred_logpdf_diag=False,
+        pred_logpdf_diag=True,
         device=config["device"],
     )
 
