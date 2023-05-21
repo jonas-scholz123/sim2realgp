@@ -28,9 +28,6 @@ from dataclasses import replace
 def sim2real(spec: Sim2RealSpec):
     device = spec.device
     B.set_global_device(device)
-    # simulator only.
-    sim_exp_dir = get_exp_dir(config)
-
     # simulator pretrained + finetuned on real data of given lengthscale.
     # tuned_exp_dir = get_exp_dir(config, spec.real.lengthscale, num_tasks, tuner_type)
     sim_exp_dir, tuned_exp_dir = get_exp_dir_sim2real(spec)
@@ -86,11 +83,13 @@ def sim2real(spec: Sim2RealSpec):
     batches = batches * (spec.opt.epoch_size // (len(batches) * spec.opt.batch_size))
     print(f"Using {len(batches)} batches.")
 
-    tuner = get_tuner(tuner_type)(model, objective, torch.optim.Adam, spec.opt.lr)
+    tuner = get_tuner(tuner_type)(model, objective, torch.optim.Adam, spec)
     state = B.create_random_state(torch.float32, seed=0)
 
     if spec.real.inf_tasks:
         num_tasks = "inf"
+    else:
+        num_tasks = spec.real.num_tasks_train
 
     if spec.out.wandb:
         spec_dir = asdict(spec)
