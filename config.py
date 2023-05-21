@@ -59,7 +59,7 @@ config = {
     # Optimisation
     "tuners": [TunerType.freeze, TunerType.naive, TunerType.film],
     # "tuners": [TunerType.naive],
-    "num_epochs": 30,
+    "num_epochs": 100,
     "batch_size": 16,
     "rate": 3e-4,
     "tune_rate": 3e-4,
