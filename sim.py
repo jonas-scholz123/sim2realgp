@@ -28,17 +28,10 @@ B.set_global_device(device)
 
 if config["wandb"]:
     lengthscale = config["lengthscale_sim"]
+    config["stage"] = "sim"
     wandb.init(
         project="thesis",
-        config={
-            "stage": "sim",
-            "arch": config["arch"],
-            "sim_lengthscale": config["lengthscale_sim"],
-            "num_layers": config["num_layers"],
-            "layer_capacity": config["conv_channels"],
-            "affine": config["affine"],
-            "residual": config["residual"],
-        },
+        config=config,
         name=f"sim {lengthscale}",
     )
 

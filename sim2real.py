@@ -89,16 +89,10 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
         num_tasks = "inf"
 
     if config["wandb"]:
+        config["stage"] = "tuning"
         run = wandb.init(
             project="thesis",
-            config={
-                "stage": "tuning",
-                "arch": config["arch"],
-                "sim_lengthscale": config["lengthscale_sim"],
-                "real_lengthscale": real_lengthscale,
-                "real_num_tasks": num_tasks,
-                "tuner": tuner.name(),
-            },
+            config=config,
             name=f"tune {sim_l} -> {real_lengthscale}, {num_tasks} tasks",
             reinit=True,
         )
