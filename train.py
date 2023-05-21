@@ -8,6 +8,7 @@ import lab as B
 import numpy as np
 
 from typing import Tuple
+from runspec import DataSpec
 
 
 def train(state, model, opt, objective, gen):
@@ -74,52 +75,52 @@ def evaluate(state, model, objective, gen):
         # return state, B.mean(vals), B.mean(gp_vals)
 
 
-def setup(config, *, num_tasks_train, num_tasks_val, lengthscale):
+def setup(s: DataSpec, device):
     # Architecture choices specific for the GP experiments:
     # Other settings specific to the GP experiments:
-    kernel = config["kernel"].stretch(lengthscale)
+    kernel = s.kernel.stretch(s.lengthscale)
 
-    dim_x = config["dim_x"]
-    num_context_min = int((1 / lengthscale) * dim_x)
-    num_context_max = int((10 / lengthscale) * dim_x)
-    num_target = int((15 / lengthscale) * dim_x)
+    dim_x = s.dim_x
+    num_context_min = int((1 / s.lengthscale) * dim_x)
+    num_context_max = int((10 / s.lengthscale) * dim_x)
+    num_target = int((15 / s.lengthscale) * dim_x)
 
     gen_train = nps.GPGenerator(
         torch.float32,
         seed=10,
-        noise=config["noise"],
+        noise=s.noise,
         kernel=kernel,
         num_context=nps.UniformDiscrete(num_context_min, num_context_max),
         num_target=nps.UniformDiscrete(num_target, num_target),
-        num_tasks=num_tasks_train,
+        num_tasks=s.num_tasks_train,
         pred_logpdf=True,
         pred_logpdf_diag=True,
-        device=config["device"],
+        device=device,
     )
 
     gen_cv = lambda: nps.GPGenerator(
         torch.float32,
         seed=20,
-        noise=config["noise"],
+        noise=s.noise,
         kernel=kernel,
         num_context=nps.UniformDiscrete(num_context_min, num_context_max),
         num_target=nps.UniformDiscrete(num_target, num_target),
-        num_tasks=num_tasks_val,
+        num_tasks=s.num_tasks_val,
         pred_logpdf=True,
         pred_logpdf_diag=True,
-        device=config["device"],
+        device=device,
     )
 
     gen_eval = lambda: nps.GPGenerator(
         torch.float32,
         seed=30,
-        noise=config["noise"],
+        noise=s.noise,
         kernel=kernel,
         num_context=nps.UniformDiscrete(num_context_min, num_context_max),
         num_target=nps.UniformDiscrete(num_target, num_target),
-        num_tasks=num_tasks_val,
+        num_tasks=s.num_tasks_val,
         pred_logpdf=True,
         pred_logpdf_diag=True,
-        device=config["device"],
+        device=device,
     )
     return gen_train, gen_cv, gen_eval

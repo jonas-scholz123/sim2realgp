@@ -9,62 +9,65 @@ import torch
 import lab as B
 import wandb
 
-from utils import ensure_exists, load_weights, save_model, get_exp_dir, get_paths
+from utils import (
+    ensure_exists,
+    load_weights,
+    save_model,
+    get_exp_dir,
+    get_paths,
+    get_exp_dir_sim,
+)
 from train import train, setup, evaluate
 from models.convgnp import construct_convgnp
-from plot import visualise
-from config import config
+from plot import visualise_1d
+from dataclasses import asdict
 
-exp_dir = get_exp_dir(config)
+from runspec import spec
+
+# %%
+exp_dir = get_exp_dir_sim(spec)
 train_plot_dir, best_model_path, latest_model_path, sim_model_dir = get_paths(exp_dir)
 
 ensure_exists(train_plot_dir)
 ensure_exists(sim_model_dir)
 print("Working dir: ", exp_dir)
 
-device = config["device"]
+device = spec.device
 B.set_global_device(device)
 
 
-if config["wandb"]:
-    lengthscale = config["lengthscale_sim"]
-    config["stage"] = "sim"
+if spec.out.wandb:
     wandb.init(
         project="thesis",
-        config=config,
-        name=f"sim {lengthscale}",
+        config=asdict(spec),
+        name=f"sim {spec.data.lengthscale}",
     )
 
-gen_train, gen_cv, gens_eval = setup(
-    config,
-    num_tasks_train=config["sim_num_tasks_train"],
-    num_tasks_val=config["sim_num_tasks_val"],
-    lengthscale=config["lengthscale_sim"],
-)
+gen_train, gen_cv, gens_eval = setup(spec.data, spec.device)
 
 
 model = construct_convgnp(
-    points_per_unit=config["points_per_unit"],
-    dim_x=config["dim_x"],
-    dim_yc=(1,) * config["dim_y"],
-    dim_yt=config["dim_y"],
+    points_per_unit=spec.data.ppu,
+    dim_x=spec.data.dim_x,
+    dim_yc=(1,) * spec.data.dim_y,
+    dim_yt=spec.data.dim_y,
     likelihood="het",
-    conv_arch=config["arch"],
-    unet_channels=config["unet_channels"],
-    unet_strides=config["unet_strides"],
-    conv_channels=config["conv_channels"],
-    conv_layers=config["num_layers"],
-    conv_receptive_field=config["conv_receptive_field"],
-    margin=config["margin"],
-    encoder_scales=config["encoder_scales"],
-    encoder_scales_learnable=config["encoder_scales_learnable"],
-    transform=config["transform"],
-    affine=config["affine"],
-    freeze_affine=config["freeze_affine"],
-    residual=config["residual"],
-    kernel_size=config["kernel_size"],
-    unet_resize_convs=config["unet_resize_convs"],
-    unet_resize_conv_interp_method=config["unet_resize_conv_interp_method"],
+    conv_arch=spec.model.arch,
+    unet_channels=spec.model.unet.channels,
+    unet_strides=spec.model.unet.strides,
+    conv_channels=spec.model.conv.channels,
+    conv_layers=spec.model.num_layers,
+    conv_receptive_field=spec.model.conv.receptive_field,
+    margin=spec.model.margin,
+    encoder_scales=spec.model.encoder_scales,
+    encoder_scales_learnable=spec.model.encoder_scales_learnable,
+    transform=spec.model.transform,
+    affine=spec.model.affine,
+    freeze_affine=spec.model.freeze_affine,
+    residual=spec.model.residual,
+    kernel_size=spec.model.kernel_size,
+    unet_resize_convs=spec.model.unet.resize_convs,
+    unet_resize_conv_interp_method=spec.model.unet.resize_conv_interp_method,
 )
 
 print(model)
@@ -72,21 +75,19 @@ print(model)
 
 objective = partial(
     nps.loglik,
-    num_samples=config["num_samples"],
-    normalise=config["normalise_obj"],
+    num_samples=spec.data.num_samples,
+    normalise=spec.model.normalise_obj,
 )
 # %%
-opt = torch.optim.Adam(model.parameters(), config["rate"])
+opt = torch.optim.Adam(model.parameters(), spec.opt.lr)
 
 state = B.create_random_state(torch.float32, seed=0)
 
 best_eval_lik = -np.infty
 
-pbar = tqdm(range(config["num_epochs"]))
+pbar = tqdm(range(spec.opt.num_epochs))
 
 for i in pbar:
-    B.epsilon = config["epsilon_start"] if i == 0 else config["epsilon"]
-
     state, train_lik, true_train_lik = train(
         state,
         model,
@@ -104,7 +105,7 @@ for i in pbar:
     }
 
     pbar.set_postfix(measures)
-    if config["wandb"]:
+    if spec.out.wandb:
         measures["true_train_lik"] = true_train_lik
         measures["true_val_lik"] = true_val_lik
         wandb.log(measures)
@@ -120,9 +121,9 @@ for i in pbar:
     # Visualise a few predictions by the model.
     gcv = gen_cv()
     for j in range(2):
-        visualise(
+        visualise_1d(
+            spec,
             model,
             gcv,
             path=f"{train_plot_dir}/train-epoch-{i + 1:03d}-{j + 1}.pdf",
-            config=config,
         )

@@ -2,6 +2,8 @@ import os
 import lab as B
 import torch
 
+from runspec import SimRunSpec
+
 
 def ensure_exists(path):
     os.makedirs(path, exist_ok=True)
@@ -35,6 +37,10 @@ def save_model(model, objective_val, epoch, path):
 def load_weights(model, path):
     model.load_state_dict(torch.load(path)["weights"])
     return model
+
+
+def get_exp_dir_sim(s: SimRunSpec):
+    return f"./outputs/{s.model.model}_{s.model.arch}/l_sim_{s.data.lengthscale:.3g}/noise_{s.data.noise:.3g}/sim"
 
 
 def get_exp_dir(config, l_real=None, num_tasks_real=None, tuner_type=None):
@@ -76,3 +82,53 @@ def get_paths(exp_dir):
     best_model_path = get_best_model_path(model_dir)
     latest_model_path = get_best_model_path(model_dir)
     return train_plot_dir, best_model_path, latest_model_path, model_dir
+
+
+def runspec_sim2real(config, real_lengthscale, real_num_tasks_train, tuner):
+    keys = [
+        "dim_embedding",
+        "enc_same",
+        "num_layers",
+        "residual",  # Use residual connections?
+        "affine",  # Use FiLM layers?
+        "freeze_affine",  # Freeze affine layers during (pre) training?
+        "kernel_size",  # Handled by receptive field
+        "conv_receptive_field",
+        "conv_channels",
+        "margin",
+        "mean_diff",
+        "transform",
+        "normalise_obj",
+        "unet_resize_convs",
+        "unet_resize_conv_interp_method",
+        "unet_channels",
+        "unet_strides",
+        "num_basis_functions",
+        "encoder_scales_learnable",
+        "num_epochs",
+        "batch_size",
+        "rate",
+        "tune_rate",
+        "num_samples",
+        "sim_num_tasks_train",
+        "sim_num_tasks_val",
+        "epoch_size",
+        "real_num_tasks_val",
+        "real_inf_tasks",
+        "noise",
+        "kernel",
+        "lengthscale_sim",
+        "dim_x",
+        "dim_y",
+    ]
+
+    result = {}
+
+    for key in keys:
+        result[key] = config[key]
+
+    result["real_lengthscale"] = real_lengthscale
+    result["real_num_tasks_train"] = real_num_tasks_train
+    result["tuner"] = tuner
+
+    return result
