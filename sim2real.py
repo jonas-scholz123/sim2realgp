@@ -1,26 +1,39 @@
 # %%
 import torch
 import neuralprocesses.torch as nps
+from dataclasses import asdict
 import lab as B
 import wandb
 from tqdm import tqdm
 from config import config
-from plot import visualise
+from plot import visualise, visualise_1d
 from train import train, evaluate, setup
 from functools import partial
-from utils import save_model, load_weights, ensure_exists, get_exp_dir, get_paths
+from utils import (
+    save_model,
+    load_weights,
+    ensure_exists,
+    get_exp_dir,
+    get_paths,
+    get_exp_dir_sim2real,
+)
 from models.convgnp import construct_convgnp
 from finetuners.get_tuner import get_tuner
 
+from runspec import Sim2RealSpec
+from config import sim2real_spec as spec
+from dataclasses import replace
 
-def sim2real(tuner_type, real_lengthscale, num_tasks):
-    device = config["device"]
+
+def sim2real(spec: Sim2RealSpec):
+    device = spec.device
     B.set_global_device(device)
     # simulator only.
     sim_exp_dir = get_exp_dir(config)
 
     # simulator pretrained + finetuned on real data of given lengthscale.
-    tuned_exp_dir = get_exp_dir(config, real_lengthscale, num_tasks, tuner_type)
+    # tuned_exp_dir = get_exp_dir(config, spec.real.lengthscale, num_tasks, tuner_type)
+    sim_exp_dir, tuned_exp_dir = get_exp_dir_sim2real(spec)
     print(f"Tuned: {tuned_exp_dir}")
 
     train_plot_dir, best_model_path, latest_model_path, model_dir = get_paths(
@@ -30,44 +43,39 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
     ensure_exists(model_dir)
     ensure_exists(train_plot_dir)
 
-    gen_train, gen_cv, gens_eval = setup(
-        config,
-        num_tasks_train=num_tasks,
-        num_tasks_val=config["real_num_tasks_val"],
-        lengthscale=real_lengthscale,
-    )
+    gen_train, gen_cv, gens_eval = setup(spec.real, spec.device)
 
     model = construct_convgnp(
-        points_per_unit=config["points_per_unit"],
-        dim_x=config["dim_x"],
-        dim_yc=(1,) * config["dim_y"],
-        dim_yt=config["dim_y"],
+        points_per_unit=spec.real.ppu,
+        dim_x=spec.real.dim_x,
+        dim_yc=(1,) * spec.real.dim_y,
+        dim_yt=spec.real.dim_y,
         likelihood="het",
-        conv_arch=config["arch"],
-        unet_channels=config["unet_channels"],
-        unet_strides=config["unet_strides"],
-        conv_channels=config["conv_channels"],
-        conv_layers=config["num_layers"],
-        conv_receptive_field=config["conv_receptive_field"],
-        margin=config["margin"],
-        encoder_scales=config["encoder_scales"],
-        encoder_scales_learnable=config["encoder_scales_learnable"],
-        transform=config["transform"],
-        affine=config["affine"],
-        freeze_affine=config["freeze_affine"],
-        residual=config["residual"],
-        kernel_size=config["kernel_size"],
-        unet_resize_convs=config["unet_resize_convs"],
-        unet_resize_conv_interp_method=config["unet_resize_conv_interp_method"],
+        conv_arch=spec.model.arch,
+        unet_channels=spec.model.unet.channels,
+        unet_strides=spec.model.unet.strides,
+        conv_channels=spec.model.conv.channels,
+        conv_layers=spec.model.num_layers,
+        conv_receptive_field=spec.model.conv.receptive_field,
+        margin=spec.model.margin,
+        encoder_scales=spec.model.encoder_scales,
+        encoder_scales_learnable=spec.model.encoder_scales_learnable,
+        transform=spec.model.transform,
+        affine=spec.model.affine,
+        freeze_affine=spec.model.freeze_affine,
+        residual=spec.model.residual,
+        kernel_size=spec.model.kernel_size,
+        unet_resize_convs=spec.model.unet.resize_convs,
+        unet_resize_conv_interp_method=spec.model.unet.resize_conv_interp_method,
     )
 
     objective = partial(
         nps.loglik,
-        num_samples=config["num_samples"],
-        normalise=config["normalise_obj"],
+        num_samples=spec.real.num_samples,
+        normalise=spec.model.normalise_obj,
     )
 
-    model = model.to(config["device"])
+    model = model.to(spec.device)
     # %%
 
     best_pretrained_path = get_paths(sim_exp_dir)[1]
@@ -75,31 +83,27 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
     model = load_weights(model, best_pretrained_path)
 
     batches = list(gen_train.epoch())
-    batches = batches * (config["epoch_size"] // (len(batches) * config["batch_size"]))
+    batches = batches * (spec.opt.epoch_size // (len(batches) * spec.opt.batch_size))
     print(f"Using {len(batches)} batches.")
 
-    tuner = get_tuner(tuner_type)(
-        model, objective, torch.optim.Adam, config["tune_rate"]
-    )
+    tuner = get_tuner(tuner_type)(model, objective, torch.optim.Adam, spec.opt.lr)
     state = B.create_random_state(torch.float32, seed=0)
 
-    sim_l = config["lengthscale_sim"]
-
-    if config["real_inf_tasks"]:
+    if spec.real.inf_tasks:
         num_tasks = "inf"
 
-    if config["wandb"]:
-        config["stage"] = "tuning"
+    if spec.out.wandb:
+        spec_dir = asdict(spec)
         run = wandb.init(
             project="thesis",
-            config=config,
-            name=f"tune {sim_l} -> {real_lengthscale}, {num_tasks} tasks",
+            config=spec_dir,
+            name=f"tune {spec.sim.lengthscale} -> {spec.real.lengthscale}, {num_tasks} tasks",
             reinit=True,
         )
 
     print(f"Tuning using {tuner}")
 
-    if config["wandb"]:
+    if spec.out.wandb:
         state, val_lik, true_val_lik = evaluate(state, tuner.model, objective, gen_cv())
         state, train_lik, true_train_lik = evaluate(
             state, tuner.model, objective, gen_train
@@ -115,10 +119,8 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
 
     best_eval_lik = -float("inf")
 
-    pbar = tqdm(range(config["num_epochs"]))
+    pbar = tqdm(range(spec.opt.num_epochs))
     for i in pbar:
-        B.epsilon = config["epsilon_start"] if i == 0 else config["epsilon"]
-
         train_lik = 0
         true_train_lik = 0
         for batch in batches:
@@ -135,7 +137,7 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
         }
 
         pbar.set_postfix(measures)
-        if config["wandb"]:
+        if spec.out.wandb:
             measures["true_train_lik"] = true_train_lik
             measures["true_val_lik"] = true_val_lik
             run.log(measures)
@@ -148,17 +150,18 @@ def sim2real(tuner_type, real_lengthscale, num_tasks):
             best_eval_lik = val_lik
             save_model(model, val_lik, i + 1, best_model_path)
 
-        if config["visualise"]:
+        if spec.out.visualise:
             # Visualise a few predictions by the model.
             for j in range(2):
-                visualise(
+                visualise_1d(
+                    spec.out,
+                    spec.real,
                     model,
                     gen_cv(),
                     path=f"{train_plot_dir}/train-epoch-{i + 1:03d}-{j + 1}.pdf",
-                    config=config,
                 )
 
-        if config["real_inf_tasks"]:
+        if spec.real.inf_tasks:
             # Get a fresh batch of tasks.
             batches = list(gen_train.epoch())
 
@@ -170,4 +173,7 @@ if __name__ == "__main__":
     for lengthscale in lengthscales:
         for num_tasks in nums_tasks:
             for tuner_type in tuner_types:
-                sim2real(tuner_type, lengthscale, num_tasks)
+                spec.real.lengthscale = lengthscale
+                spec.real.num_tasks_train = num_tasks
+                spec.tuner = tuner_type
+                sim2real(spec)

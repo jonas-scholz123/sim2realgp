@@ -2,7 +2,7 @@ import os
 import lab as B
 import torch
 
-from runspec import SimRunSpec
+from runspec import Sim2RealSpec, SimRunSpec
 
 
 def ensure_exists(path):
@@ -39,8 +39,22 @@ def load_weights(model, path):
     return model
 
 
+def get_exp_dir_base(model, arch, sim_l, noise):
+    return f"./outputs/{model}_{arch}/l_sim_{sim_l:.3g}/noise_{noise:.3g}"
+
+
 def get_exp_dir_sim(s: SimRunSpec):
-    return f"./outputs/{s.model.model}_{s.model.arch}/l_sim_{s.data.lengthscale:.3g}/noise_{s.data.noise:.3g}/sim"
+    base = get_exp_dir_base(
+        s.model.model, s.model.arch, s.data.lengthscale, s.data.noise
+    )
+    return f"{base}/sim"
+
+
+def get_exp_dir_sim2real(s: Sim2RealSpec):
+    base = get_exp_dir_base(s.model.model, s.model.arch, s.sim.lengthscale, s.sim.noise)
+    tune_dir = f"{base}/tuned/l_real_{s.real.lengthscale:.3g}/num_real_tasks_{s.real.num_tasks_train}/{s.tuner}"
+    sim_dir = f"{base}/sim"
+    return sim_dir, tune_dir
 
 
 def get_exp_dir(config, l_real=None, num_tasks_real=None, tuner_type=None):

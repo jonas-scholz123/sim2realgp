@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../../../miniforge3/lib/python3.9/site-packages/lab"
+		},
+		{
+			"path": "../../../../../miniforge3/lib/python3.9/site-packages/neuralprocesses"
+		}
+	],
+	"settings": {}
+}

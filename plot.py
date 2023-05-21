@@ -5,7 +5,7 @@ import stheno
 import torch
 from wbml.plot import tweak
 
-from runspec import SimRunSpec
+from runspec import DataSpec, OutputSpec, SimRunSpec
 
 __all__ = ["visualise"]
 
@@ -32,11 +32,13 @@ def visualise(model, gen, *, path, config, predict=nps.predict):
         pass  # Not implemented. Just do nothing.
 
 
-def visualise_1d(s: SimRunSpec, model, gen, *, path, predict=nps.predict):
+def visualise_1d(
+    out: OutputSpec, data: DataSpec, model, gen, *, path, predict=nps.predict
+):
     batch = nps.batch_index(gen.generate_batch(), slice(0, 1, None))
 
     try:
-        plot_config = s.out.plot[1]
+        plot_config = out.plot[1]
     except KeyError:
         print("config[plot] is unset.")
         return
@@ -50,13 +52,13 @@ def visualise_1d(s: SimRunSpec, model, gen, *, path, predict=nps.predict):
         mean, var, samples, _ = predict(
             model,
             batch["contexts"],
-            nps.AggregateInput(*((x[None, None, :], i) for i in range(s.data.dim_y))),
+            nps.AggregateInput(*((x[None, None, :], i) for i in range(data.dim_y))),
         )
 
-    plt.figure(figsize=(8, 6 * s.data.dim_y))
+    plt.figure(figsize=(8, 6 * data.dim_y))
 
-    for i in range(s.data.dim_y):
-        plt.subplot(s.data.dim_y, 1, 1 + i)
+    for i in range(data.dim_y):
+        plt.subplot(data.dim_y, 1, 1 + i)
 
         # Plot context and target.
         plt.scatter(
@@ -98,7 +100,7 @@ def visualise_1d(s: SimRunSpec, model, gen, *, path, predict=nps.predict):
         )
 
         # Plot prediction by ground truth.
-        if hasattr(gen, "kernel") and s.data.dim_y == 1:
+        if hasattr(gen, "kernel") and data.dim_y == 1:
             f = stheno.GP(gen.kernel)
             # Make sure that everything is of `float32`s and on the GPU.
             noise = B.to_active_device(B.cast(torch.float32, gen.noise))

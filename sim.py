@@ -22,7 +22,7 @@ from models.convgnp import construct_convgnp
 from plot import visualise_1d
 from dataclasses import asdict
 
-from runspec import spec
+from config import sim_spec as spec
 
 # %%
 exp_dir = get_exp_dir_sim(spec)
@@ -122,7 +122,8 @@ for i in pbar:
     gcv = gen_cv()
     for j in range(2):
         visualise_1d(
-            spec,
+            spec.out,
+            spec.data,
             model,
             gcv,
             path=f"{train_plot_dir}/train-epoch-{i + 1:03d}-{j + 1}.pdf",
