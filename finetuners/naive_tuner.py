@@ -8,8 +8,8 @@ class NaiveTuner(Tuner):
     Modify all weights in the model, leaving the model architecture unchanged.
     """
 
-    def __init__(self, initial_model, objective, opt, lr):
-        super().__init__(initial_model, objective, opt, lr)
+    def __init__(self, initial_model, objective, opt, spec):
+        super().__init__(initial_model, objective, opt, spec)
 
     def modify_model(self, initial_model):
         """

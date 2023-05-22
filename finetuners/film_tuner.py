@@ -7,8 +7,8 @@ from components.film import FiLM
 
 
 class FilmTuner(Tuner):
-    def __init__(self, initial_model, objective, opt, lr):
-        super().__init__(initial_model, objective, opt, lr)
+    def __init__(self, initial_model, objective, opt, spec):
+        super().__init__(initial_model, objective, opt, spec)
 
     def modify_model(self, initial_model: nn.Module) -> nn.Module:
         initial_model.requires_grad_(False)

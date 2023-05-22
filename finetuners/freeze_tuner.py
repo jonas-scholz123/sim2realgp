@@ -13,7 +13,7 @@ class FreezeTuner(Tuner):
     ):
         self.num_layers_tuned = num_layers_tuned
         self.spec = s
-        super().__init__(initial_model, objective, opt, s.opt.lr)
+        super().__init__(initial_model, objective, opt, s)
 
     def modify_model(self, initial_model: nn.Module) -> nn.Module:
         initial_model.requires_grad_(False)

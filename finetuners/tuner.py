@@ -4,12 +4,14 @@ from typing import Tuple
 
 from train import train_on_batch
 
+from runspec import Sim2RealSpec
+
 
 class Tuner(ABC):
-    def __init__(self, initial_model, objective, opt, lr):
+    def __init__(self, initial_model, objective, opt, spec: Sim2RealSpec):
         self.model = self.modify_model(initial_model)
         self.objective = objective
-        self.opt = opt(self.model.parameters(), lr)
+        self.opt = opt(self.model.parameters(), spec.opt.lr)
 
     @abstractmethod
     def modify_model(self, initial_model) -> nn.Module:

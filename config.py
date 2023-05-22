@@ -21,7 +21,7 @@ from runspec import (
 warnings.filterwarnings("ignore", category=ToDenseWarning)
 
 config = {
-    "tuners": [TunerType.freeze, TunerType.naive, TunerType.film],
+    "tuners": [TunerType.naive, TunerType.film, TunerType.freeze],
     "real_nums_tasks_train": [2**4, 2**8, 2**10],
     "lengthscales_real": [0.05, 0.1, 0.2],
 }
