@@ -149,6 +149,10 @@ def sim2real(spec: Sim2RealSpec):
             best_eval_lik = val_lik
             save_model(model, val_lik, i + 1, best_model_path)
 
+        # Massive overfitting, end the run early.
+        if val_lik < -10:
+            break
+
         if spec.out.visualise:
             # Visualise a few predictions by the model.
             for j in range(2):
