@@ -6,8 +6,9 @@ import lab as B
 import wandb
 from tqdm import tqdm
 from config import config
+from finetuners.tuner_types import TunerType
 from plot import visualise, visualise_1d
-from train import train, evaluate, setup
+from train import EarlyStopper, train, evaluate, setup
 from functools import partial
 from utils import (
     save_model,
@@ -22,7 +23,6 @@ from finetuners.get_tuner import get_tuner
 
 from runspec import Sim2RealSpec
 from config import sim2real_spec as spec
-from dataclasses import replace
 
 
 def sim2real(spec: Sim2RealSpec):
@@ -77,14 +77,19 @@ def sim2real(spec: Sim2RealSpec):
 
     best_pretrained_path = get_paths(sim_exp_dir)[1]
     print(f"Loading best model from {best_pretrained_path}")
-    model = load_weights(model, best_pretrained_path)
+    model, _ = load_weights(model, best_pretrained_path)
+
+    try:
+        _, prev_best_lik = load_weights(model, best_model_path, lik_only=True)
+    except FileNotFoundError:
+        pass
 
     batches = list(gen_train.epoch())
-    batches = batches * (spec.opt.epoch_size // (len(batches) * spec.opt.batch_size))
-    print(f"Using {len(batches)} batches.")
 
     tuner = get_tuner(tuner_type)(model, objective, torch.optim.Adam, spec)
     state = B.create_random_state(torch.float32, seed=0)
+
+    early_stopper = EarlyStopper(10)
 
     if spec.real.inf_tasks:
         num_tasks = "inf"
@@ -139,6 +144,7 @@ def sim2real(spec: Sim2RealSpec):
         if spec.out.wandb:
             measures["true_train_lik"] = true_train_lik
             measures["true_val_lik"] = true_val_lik
+            measures["best_val_lik"] = best_eval_lik
             run.log(measures)
 
         # Save current model.
@@ -147,20 +153,22 @@ def sim2real(spec: Sim2RealSpec):
         # Check if the model is the new best. If so, save it.
         if val_lik > best_eval_lik:
             best_eval_lik = val_lik
-            save_model(model, val_lik, i + 1, best_model_path)
+            if val_lik > prev_best_lik:
+                save_model(model, val_lik, i + 1, best_model_path)
 
-        # Massive overfitting, end the run early.
-        if val_lik < -10:
+        # Overfitting, end the run early.
+        if early_stopper.early_stop(-val_lik):
             break
 
         if spec.out.visualise:
             # Visualise a few predictions by the model.
+            gcv = gen_cv()
             for j in range(2):
                 visualise_1d(
                     spec.out,
                     spec.real,
                     model,
-                    gen_cv(),
+                    gcv,
                     path=f"{train_plot_dir}/train-epoch-{i + 1:03d}-{j + 1}.pdf",
                 )
 
@@ -173,10 +181,28 @@ if __name__ == "__main__":
     lengthscales = config["lengthscales_real"]
     nums_tasks = config["real_nums_tasks_train"]
     tuner_types = config["tuners"]
+
+    base_lr = spec.opt.lr
+
     for lengthscale in lengthscales:
         for num_tasks in nums_tasks:
             for tuner_type in tuner_types:
                 spec.real.lengthscale = lengthscale
                 spec.real.num_tasks_train = num_tasks
                 spec.tuner = tuner_type
+
+                # roughly adjust the learning rate for different tasks
+                multiplier = 1
+                if lengthscale > 0.05:
+                    multiplier *= 1 / 3
+                if num_tasks <= 2**6:
+                    multiplier *= 1 / 3
+
+                if tuner_type == TunerType.film:
+                    multiplier *= 50
+
+                spec.opt.lr = base_lr * multiplier
+
                 sim2real(spec)
+
+# %%

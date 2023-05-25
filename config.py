@@ -21,9 +21,11 @@ from runspec import (
 warnings.filterwarnings("ignore", category=ToDenseWarning)
 
 config = {
-    "tuners": [TunerType.naive, TunerType.film, TunerType.freeze],
-    "real_nums_tasks_train": [2**4, 2**8, 2**10],
-    "lengthscales_real": [0.05, 0.1, 0.2],
+    "tuners": [TunerType.film],
+    # "tuners": [TunerType.naive],
+    # "real_nums_tasks_train": [2**4, 2**6, 2**8, 2**10],
+    "real_nums_tasks_train": [2**8, 2**10],
+    "lengthscales_real": [0.2],
 }
 
 out = OutputSpec(
@@ -31,10 +33,8 @@ out = OutputSpec(
     visualise=True,
     plot={
         1: {"range": (-2, 4), "axvline": [2]},
-        2: {"range": ((-2, 4), (-2, 4))},
     },
 )
-
 
 model = ModelSpec(
     model="convcnp",
@@ -72,9 +72,8 @@ dirs = Directories(
 )
 
 opt = OptSpec(
-    num_epochs=100,
+    num_epochs=500,
     batch_size=16,
-    epoch_size=2**10,
     lr=3e-4,
 )
 
@@ -93,7 +92,7 @@ sim_data = DataSpec(
 )
 
 
-real_data = replace(sim_data, num_tasks_train=2**6, inf_tasks=False, lengthscale=0.05)
+real_data = replace(sim_data, num_tasks_train=None, inf_tasks=False, lengthscale=None)
 
 sim_spec = SimRunSpec(
     device="mps",
@@ -106,7 +105,7 @@ sim_spec = SimRunSpec(
 
 sim2real_spec = Sim2RealSpec(
     device="mps",
-    tuner=TunerType.film,
+    tuner=None,
     out=out,
     sim=sim_data,
     real=real_data,

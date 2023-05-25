@@ -4,6 +4,7 @@ from finetuners.naive_tuner import NaiveTuner
 from finetuners.freeze_tuner import FreezeTuner
 from finetuners.tuner import Tuner
 from finetuners.tuner_types import TunerType
+from finetuners.film_linear_tuner import FilmLinearTuner
 
 
 def get_tuner(tt: TunerType) -> Tuner:
@@ -13,3 +14,5 @@ def get_tuner(tt: TunerType) -> Tuner:
         return FilmTuner
     if tt == TunerType.freeze:
         return FreezeTuner
+    if tt == TunerType.filmlinear:
+        return FilmLinearTuner

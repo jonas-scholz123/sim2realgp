@@ -108,6 +108,7 @@ for i in pbar:
     if spec.out.wandb:
         measures["true_train_lik"] = true_train_lik
         measures["true_val_lik"] = true_val_lik
+        measures["best_val_lik"] = best_eval_lik
         wandb.log(measures)
 
     # Save current model.

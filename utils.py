@@ -34,9 +34,15 @@ def save_model(model, objective_val, epoch, path):
     )
 
 
-def load_weights(model, path):
-    model.load_state_dict(torch.load(path)["weights"])
-    return model
+def load_weights(model, path, lik_only=False):
+    state = torch.load(path)
+    val_lik = state["objective"]
+    if lik_only:
+        return None, val_lik
+
+    weights = state["weights"]
+    model.load_state_dict(weights)
+    return model, val_lik
 
 
 def get_exp_dir_base(model, arch, sim_l, noise):

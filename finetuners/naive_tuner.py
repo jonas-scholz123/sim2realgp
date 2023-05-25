@@ -9,7 +9,7 @@ class NaiveTuner(Tuner):
     """
 
     def __init__(self, initial_model, objective, opt, spec):
-        super().__init__(initial_model, objective, opt, spec)
+        super().__init__(initial_model, objective, opt, spec.opt.lr)
 
     def modify_model(self, initial_model):
         """

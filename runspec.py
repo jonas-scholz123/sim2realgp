@@ -58,7 +58,6 @@ class ModelSpec:
 class OptSpec:
     num_epochs: int
     batch_size: int
-    epoch_size: int
     lr: float
 
 
