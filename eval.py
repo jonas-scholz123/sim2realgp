@@ -1,9 +1,13 @@
 # %%
+from typing import List
 from utils import get_exp_dir_sim2real, get_paths, load_weights
 from train import evaluate, setup
 import torch
 import numpy as np
 from functools import partial
+from itertools import product
+from dataclasses import replace
+from copy import deepcopy
 from tqdm import tqdm
 
 import neuralprocesses.torch as nps
@@ -11,6 +15,7 @@ import neuralprocesses.torch as nps
 from config import sim2real_spec as spec, config
 from models.convgnp import construct_convgnp
 from finetuners.tuner_types import TunerType
+from runspec import Sim2RealSpec
 
 import lab as B
 
@@ -53,6 +58,24 @@ nums_tasks = [2**4, 2**8, 2**10]
 spec.real.num_tasks_val = 2**6
 tuners = [TunerType.film, TunerType.freeze, TunerType.naive]
 
+
+def modify_spec(spec, l, num_tasks, tuner) -> Sim2RealSpec:
+    spec = deepcopy(spec)
+    spec.real.lengthscale = l
+    spec.real.num_tasks_train = num_tasks
+    spec.tuner = tuner
+    return spec
+
+
+def gen_specs(spec, ls, nums_tasks, tuners) -> List[Sim2RealSpec]:
+    specs = []
+    for l, num_tasks, tuner in product(ls, nums_tasks, tuners):
+        specs.append(modify_spec(spec, l, num_tasks, tuner))
+    return specs
+
+
+# %%
+
 best_tuners = np.zeros((len(ls), len(nums_tasks)))
 best_liks = np.zeros((len(ls), len(nums_tasks)))
 for i, l in enumerate(tqdm(ls)):
@@ -81,4 +104,26 @@ for i, l in enumerate(tqdm(ls)):
         best_liks[i, j] = best_lik
 
 # %%
-best_liks
+import pandas as pd
+
+specs = gen_specs(spec, ls, nums_tasks, tuners)
+
+records = []
+for spec in specs:
+    sim_exp_dir, tuned_exp_dir = get_exp_dir_sim2real(spec)
+    _, best_model_path, _, _ = get_paths(tuned_exp_dir)
+    _, cv_lik = load_weights(model, best_model_path, lik_only=True)
+
+    record = {
+        "lengthscale": spec.real.lengthscale,
+        "num_tasks": spec.real.num_tasks_train,
+        "tuner": spec.tuner,
+        "cv_lik": cv_lik,
+    }
+    records.append(record)
+
+pd.DataFrame(records)
+
+
+# %%
+specs
