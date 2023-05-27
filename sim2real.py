@@ -17,6 +17,7 @@ from utils import (
     get_exp_dir,
     get_paths,
     get_exp_dir_sim2real,
+    should_eval,
 )
 from models.convgnp import construct_convgnp
 from finetuners.get_tuner import get_tuner
@@ -123,14 +124,21 @@ def sim2real(spec: Sim2RealSpec):
 
     best_eval_lik = -float("inf")
 
-    pbar = tqdm(range(spec.opt.num_epochs))
+    pbar = tqdm(range(1, spec.opt.num_epochs + 1))
     for i in pbar:
+        if spec.real.inf_tasks:
+            # Get a fresh batch of tasks.
+            batches = list(gen_train.epoch())
+
         train_lik = 0
         true_train_lik = 0
         for batch in batches:
             state, batch_lik, batch_true_lik = tuner.train_on_batch(batch, state)
             train_lik += batch_lik / len(batches)
             true_train_lik += batch_true_lik / len(batches)
+
+        if not should_eval(i, spec.out.eval_every, spec.real.num_tasks_train):
+            continue
 
         # The epoch is done. Now evaluate.
         state, val_lik, true_val_lik = evaluate(state, model, objective, gen_cv())
@@ -145,19 +153,20 @@ def sim2real(spec: Sim2RealSpec):
             measures["true_train_lik"] = true_train_lik
             measures["true_val_lik"] = true_val_lik
             measures["best_val_lik"] = best_eval_lik
+            measures["epoch"] = i
             run.log(measures)
 
         # Save current model.
-        save_model(model, val_lik, i + 1, latest_model_path)
+        save_model(model, val_lik, i, spec, latest_model_path)
 
         # Check if the model is the new best. If so, save it.
         if val_lik > best_eval_lik:
             best_eval_lik = val_lik
             if val_lik > prev_best_lik:
-                save_model(model, val_lik, i + 1, best_model_path)
+                save_model(model, val_lik, i, spec, best_model_path)
 
-        # Overfitting, end the run early.
         if early_stopper.early_stop(-val_lik):
+            # Overfitting, end the run early.
             break
 
         if spec.out.visualise:
@@ -169,12 +178,8 @@ def sim2real(spec: Sim2RealSpec):
                     spec.real,
                     model,
                     gcv,
-                    path=f"{train_plot_dir}/train-epoch-{i + 1:03d}-{j + 1}.pdf",
+                    path=f"{train_plot_dir}/train-epoch-{i:03d}-{j + 1}.pdf",
                 )
-
-        if spec.real.inf_tasks:
-            # Get a fresh batch of tasks.
-            batches = list(gen_train.epoch())
 
 
 if __name__ == "__main__":
@@ -199,7 +204,7 @@ if __name__ == "__main__":
                     multiplier *= 1 / 3
 
                 if tuner_type == TunerType.film:
-                    multiplier *= 50
+                    multiplier *= 10
 
                 spec.opt.lr = base_lr * multiplier
 

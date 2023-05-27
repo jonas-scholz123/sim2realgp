@@ -23,12 +23,13 @@ def with_err(vals, err=None, and_lower=False, and_upper=False):
     return res
 
 
-def save_model(model, objective_val, epoch, path):
+def save_model(model, objective_val, epoch, spec, path):
     torch.save(
         {
             "weights": model.state_dict(),
             "objective": objective_val,
             "epoch": epoch,
+            "spec": spec,
         },
         path,
     )
@@ -152,3 +153,17 @@ def runspec_sim2real(config, real_lengthscale, real_num_tasks_train, tuner):
     result["tuner"] = tuner
 
     return result
+
+
+def should_eval(epoch, eval_every, epoch_size):
+    if epoch == 1:
+        return True
+
+    if epoch_size > eval_every:
+        return True
+
+    current_samples_seen = epoch * epoch_size
+
+    if current_samples_seen % eval_every == 0:
+        return True
+    return False

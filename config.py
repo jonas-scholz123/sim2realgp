@@ -24,8 +24,8 @@ config = {
     "tuners": [TunerType.film],
     # "tuners": [TunerType.naive],
     # "real_nums_tasks_train": [2**4, 2**6, 2**8, 2**10],
-    "real_nums_tasks_train": [2**8, 2**10],
-    "lengthscales_real": [0.2],
+    "real_nums_tasks_train": [2**4],
+    "lengthscales_real": [0.05],
 }
 
 out = OutputSpec(
@@ -34,6 +34,7 @@ out = OutputSpec(
     plot={
         1: {"range": (-2, 4), "axvline": [2]},
     },
+    eval_every=2**8,
 )
 
 model = ModelSpec(
@@ -74,7 +75,7 @@ dirs = Directories(
 opt = OptSpec(
     num_epochs=500,
     batch_size=16,
-    lr=3e-4,
+    lr=3e-3,
 )
 
 

@@ -73,6 +73,7 @@ class OutputSpec:
     wandb: bool
     visualise: bool
     plot: dict
+    eval_every: int
 
 
 @dataclass
