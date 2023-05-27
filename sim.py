@@ -17,7 +17,7 @@ from utils import (
     get_paths,
     get_exp_dir_sim,
 )
-from train import train, setup, evaluate
+from train import EarlyStopper, train, setup, evaluate
 from models.convgnp import construct_convgnp
 from plot import visualise_1d
 from dataclasses import asdict
@@ -85,6 +85,8 @@ state = B.create_random_state(torch.float32, seed=0)
 
 best_eval_lik = -np.infty
 
+early_stopper = EarlyStopper(10)
+
 pbar = tqdm(range(spec.opt.num_epochs))
 
 for i in pbar:
@@ -112,12 +114,15 @@ for i in pbar:
         wandb.log(measures)
 
     # Save current model.
-    save_model(model, true_val_lik, i + 1, latest_model_path)
+    save_model(model, val_lik, i + 1, spec, latest_model_path)
 
     # Check if the model is the new best. If so, save it.
-    if true_val_lik > best_eval_lik:
+    if val_lik > best_eval_lik:
         best_eval_lik = true_val_lik
-        save_model(model, true_val_lik, i + 1, best_model_path)
+        save_model(model, val_lik, i + 1, spec, best_model_path)
+
+    if early_stopper.early_stop(-val_lik):
+        break
 
     # Visualise a few predictions by the model.
     gcv = gen_cv()
