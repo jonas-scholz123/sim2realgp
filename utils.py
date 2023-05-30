@@ -59,7 +59,7 @@ def get_exp_dir_sim(s: SimRunSpec):
 
 def get_exp_dir_sim2real(s: Sim2RealSpec):
     base = get_exp_dir_base(s.model.model, s.model.arch, s.sim.lengthscale, s.sim.noise)
-    tune_dir = f"{base}/tuned/l_real_{s.real.lengthscale:.3g}/num_real_tasks_{s.real.num_tasks_train}/{s.tuner}"
+    tune_dir = f"{base}/tuned/l_real_{s.real.lengthscale:.3g}/num_real_tasks_{s.real.num_tasks_train}/{s.tuner}/seed_{s.real.train_seed}"
     sim_dir = f"{base}/sim"
     return sim_dir, tune_dir
 
@@ -101,7 +101,7 @@ def get_paths(exp_dir):
     model_dir = get_model_dir(exp_dir)
     train_plot_dir = get_train_plot_dir(exp_dir)
     best_model_path = get_best_model_path(model_dir)
-    latest_model_path = get_best_model_path(model_dir)
+    latest_model_path = get_latest_model_path(model_dir)
     return train_plot_dir, best_model_path, latest_model_path, model_dir
 
 
@@ -159,7 +159,7 @@ def should_eval(epoch, eval_every, epoch_size):
     if epoch == 1:
         return True
 
-    if epoch_size > eval_every:
+    if epoch_size >= eval_every:
         return True
 
     current_samples_seen = epoch * epoch_size

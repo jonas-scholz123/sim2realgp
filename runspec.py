@@ -16,6 +16,7 @@ class DataSpec:
     ppu: int
     dim_x: int
     dim_y: int
+    train_seed: int
 
 
 @dataclass
@@ -74,6 +75,7 @@ class OutputSpec:
     visualise: bool
     plot: dict
     eval_every: int
+    ignore_previous: bool
 
 
 @dataclass

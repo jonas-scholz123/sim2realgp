@@ -87,7 +87,7 @@ def setup(s: DataSpec, device):
 
     gen_train = nps.GPGenerator(
         torch.float32,
-        seed=10,
+        seed=s.train_seed,
         noise=s.noise,
         kernel=kernel,
         num_context=nps.UniformDiscrete(num_context_min, num_context_max),
@@ -100,7 +100,7 @@ def setup(s: DataSpec, device):
 
     gen_cv = lambda: nps.GPGenerator(
         torch.float32,
-        seed=20,
+        seed=s.train_seed + 10,
         noise=s.noise,
         kernel=kernel,
         num_context=nps.UniformDiscrete(num_context_min, num_context_max),
@@ -133,12 +133,12 @@ class EarlyStopper:
         self.counter = 0
         self.min_validation_loss = np.inf
 
-    def early_stop(self, validation_loss):
+    def early_stop(self, validation_loss, epochs_passed=1):
         if validation_loss < self.min_validation_loss:
             self.min_validation_loss = validation_loss
             self.counter = 0
         elif validation_loss > (self.min_validation_loss + self.min_delta):
-            self.counter += 1
+            self.counter += epochs_passed
             if self.counter >= self.patience:
                 return True
         return False

@@ -85,7 +85,7 @@ state = B.create_random_state(torch.float32, seed=0)
 
 best_eval_lik = -np.infty
 
-early_stopper = EarlyStopper(10)
+early_stopper = EarlyStopper(20)
 
 pbar = tqdm(range(spec.opt.num_epochs))
 
@@ -118,7 +118,7 @@ for i in pbar:
 
     # Check if the model is the new best. If so, save it.
     if val_lik > best_eval_lik:
-        best_eval_lik = true_val_lik
+        best_eval_lik = val_lik
         save_model(model, val_lik, i + 1, spec, best_model_path)
 
     if early_stopper.early_stop(-val_lik):

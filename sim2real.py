@@ -80,17 +80,21 @@ def sim2real(spec: Sim2RealSpec):
     print(f"Loading best model from {best_pretrained_path}")
     model, _ = load_weights(model, best_pretrained_path)
 
-    try:
-        _, prev_best_lik = load_weights(model, best_model_path, lik_only=True)
-    except FileNotFoundError:
-        pass
+    if spec.out.ignore_previous:
+        prev_best_lik = -float("inf")
+    else:
+        try:
+            _, prev_best_lik = load_weights(model, best_model_path, lik_only=True)
+        except FileNotFoundError:
+            prev_best_lik = -float("inf")
+    print("Previous best lik: ", prev_best_lik)
 
     batches = list(gen_train.epoch())
 
     tuner = get_tuner(tuner_type)(model, objective, torch.optim.Adam, spec)
     state = B.create_random_state(torch.float32, seed=0)
 
-    early_stopper = EarlyStopper(10)
+    early_stopper = EarlyStopper(30)
 
     if spec.real.inf_tasks:
         num_tasks = "inf"
@@ -119,12 +123,14 @@ def sim2real(spec: Sim2RealSpec):
             "val_lik": val_lik,
             "true_train_lik": true_train_lik,
             "true_val_lik": true_val_lik,
+            "epoch": 0,
         }
         run.log(measures)
 
     best_eval_lik = -float("inf")
 
     pbar = tqdm(range(1, spec.opt.num_epochs + 1))
+    last_eval_epoch = 0
     for i in pbar:
         if spec.real.inf_tasks:
             # Get a fresh batch of tasks.
@@ -165,7 +171,7 @@ def sim2real(spec: Sim2RealSpec):
             if val_lik > prev_best_lik:
                 save_model(model, val_lik, i, spec, best_model_path)
 
-        if early_stopper.early_stop(-val_lik):
+        if early_stopper.early_stop(-val_lik, i - last_eval_epoch):
             # Overfitting, end the run early.
             break
 
@@ -181,33 +187,41 @@ def sim2real(spec: Sim2RealSpec):
                     path=f"{train_plot_dir}/train-epoch-{i:03d}-{j + 1}.pdf",
                 )
 
+        last_eval_epoch = i
+
 
 if __name__ == "__main__":
     lengthscales = config["lengthscales_real"]
     nums_tasks = config["real_nums_tasks_train"]
     tuner_types = config["tuners"]
+    seeds = config["seeds"]
 
     base_lr = spec.opt.lr
 
-    for lengthscale in lengthscales:
-        for num_tasks in nums_tasks:
-            for tuner_type in tuner_types:
-                spec.real.lengthscale = lengthscale
-                spec.real.num_tasks_train = num_tasks
-                spec.tuner = tuner_type
+    for seed in seeds:
+        for lengthscale in lengthscales:
+            for num_tasks in nums_tasks:
+                for tuner_type in tuner_types:
+                    spec.real.train_seed = seed
+                    spec.real.lengthscale = lengthscale
+                    spec.real.num_tasks_train = num_tasks
+                    spec.tuner = tuner_type
 
-                # roughly adjust the learning rate for different tasks
-                multiplier = 1
-                if lengthscale > 0.05:
-                    multiplier *= 1 / 3
-                if num_tasks <= 2**6:
-                    multiplier *= 1 / 3
+                    # roughly adjust the learning rate for different tasks
+                    multiplier = 1
+                    if lengthscale == 0.2:
+                        multiplier *= 1 / 10
+                    elif lengthscale == 0.1:
+                        multiplier *= 1 / 5
 
-                if tuner_type == TunerType.film:
-                    multiplier *= 10
+                    if tuner_type == TunerType.film:
+                        multiplier *= 50
 
-                spec.opt.lr = base_lr * multiplier
+                    if tuner_type == TunerType.filmlinear:
+                        multiplier *= 20
 
-                sim2real(spec)
+                    spec.opt.lr = base_lr * multiplier
+
+                    sim2real(spec)
 
 # %%

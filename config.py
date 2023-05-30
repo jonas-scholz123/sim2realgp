@@ -21,11 +21,12 @@ from runspec import (
 warnings.filterwarnings("ignore", category=ToDenseWarning)
 
 config = {
-    "tuners": [TunerType.film],
-    # "tuners": [TunerType.naive],
-    # "real_nums_tasks_train": [2**4, 2**6, 2**8, 2**10],
-    "real_nums_tasks_train": [2**4],
-    "lengthscales_real": [0.05],
+    "tuners": [TunerType.film, TunerType.naive],
+    # "tuners": [TunerType.filmlinear],
+    "real_nums_tasks_train": [2**4, 2**6],
+    # "real_nums_tasks_train": [2**8, 2**10],
+    "lengthscales_real": [0.1, 0.2],
+    "seeds": list(range(10, 15)),
 }
 
 out = OutputSpec(
@@ -34,7 +35,8 @@ out = OutputSpec(
     plot={
         1: {"range": (-2, 4), "axvline": [2]},
     },
-    eval_every=2**8,
+    eval_every=2**4,
+    ignore_previous=True,
 )
 
 model = ModelSpec(
@@ -66,6 +68,65 @@ model = ModelSpec(
     ),
 )
 
+model_mini = ModelSpec(
+    model="convcnp_mini",
+    arch="unet",
+    width=256,
+    dim_embedding=256,
+    num_layers=6,
+    num_basis_functions=64,
+    kernel_size=None,
+    residual=False,
+    affine=True,
+    freeze_affine=True,
+    encoder_scales=1 / 64,
+    encoder_scales_learnable=False,
+    normalise_obj=True,
+    margin=0.1,
+    mean_diff=None,
+    transform=None,
+    conv=ConvSpec(
+        receptive_field=1.0,
+        channels=32,
+    ),
+    unet=UNetSpec(
+        resize_convs=True,
+        resize_conv_interp_method="nearest",
+        channels=(16,) * 3,
+        strides=(1,) + (2,) * 2,
+    ),
+)
+
+model_xl = ModelSpec(
+    model="convcnp_xl",
+    arch="unet",
+    width=256,
+    dim_embedding=256,
+    num_layers=6,
+    num_basis_functions=64,
+    kernel_size=None,
+    residual=False,
+    affine=True,
+    freeze_affine=True,
+    encoder_scales=1 / 64,
+    encoder_scales_learnable=False,
+    normalise_obj=True,
+    margin=0.1,
+    mean_diff=None,
+    transform=None,
+    conv=ConvSpec(
+        receptive_field=1.0,
+        channels=32,
+    ),
+    unet=UNetSpec(
+        resize_convs=True,
+        resize_conv_interp_method="nearest",
+        channels=(128,) * 9,
+        strides=(1,) + (2,) * 8,
+    ),
+)
+
+
 dirs = Directories(
     output_path="./outputs",
     train_path="/train",
@@ -75,7 +136,7 @@ dirs = Directories(
 opt = OptSpec(
     num_epochs=500,
     batch_size=16,
-    lr=3e-3,
+    lr=3e-4,
 )
 
 
@@ -90,10 +151,17 @@ sim_data = DataSpec(
     ppu=64,
     dim_x=1,
     dim_y=1,
+    train_seed=10,
 )
 
 
-real_data = replace(sim_data, num_tasks_train=None, inf_tasks=False, lengthscale=None)
+real_data = replace(
+    sim_data,
+    num_tasks_train=None,
+    inf_tasks=False,
+    lengthscale=None,
+    num_tasks_val=2**6,
+)
 
 sim_spec = SimRunSpec(
     device="mps",
