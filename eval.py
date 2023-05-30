@@ -13,6 +13,8 @@ from dataclasses import replace, asdict
 from copy import deepcopy
 from tqdm import tqdm
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 import neuralprocesses.torch as nps
 
@@ -20,8 +22,7 @@ from config import sim2real_spec as spec, config, sim_spec
 from models.convgnp import construct_convgnp
 from finetuners.tuner_types import TunerType
 from runspec import Sim2RealSpec, SimRunSpec
-import matplotlib.pyplot as plt
-import seaborn as sns
+from plot import save
 
 import lab as B
 
@@ -89,88 +90,6 @@ for i, l in enumerate(tqdm(ls)):
 
         best_tuners[i, j] = best_tuner.value
         best_liks[i, j] = best_lik
-
-# %%
-
-specs = gen_s2rspecs(spec, ls, nums_tasks, tuners, seeds)
-
-records = []
-for spec in specs:
-    try:
-        sim_exp_dir, tuned_exp_dir = get_exp_dir_sim2real(spec)
-        _, best_model_path, _, _ = get_paths(tuned_exp_dir)
-        _, cv_lik = load_weights(model, best_model_path, lik_only=True)
-
-        record = {
-            "lengthscale": spec.real.lengthscale,
-            "num_tasks": spec.real.num_tasks_train,
-            "tuner": spec.tuner,
-            "seed": spec.real.train_seed,
-            "cv_lik": cv_lik,
-        }
-        records.append(record)
-    except FileNotFoundError:
-        continue
-
-df = pd.DataFrame(records)
-
-diffs = np.zeros((len(ls), len(nums_tasks)))
-for i, l in enumerate(tqdm(ls)):
-    for j, num_tasks in enumerate(tqdm(nums_tasks)):
-        nl_df = df[(df["num_tasks"] == num_tasks) & (df["lengthscale"] == l)]
-        film = nl_df[nl_df["tuner"] == TunerType.film]["cv_lik"].mean()
-        naive = nl_df[nl_df["tuner"] == TunerType.naive]["cv_lik"].mean()
-        diffs[i, j] = film - naive
-
-sns.heatmap(
-    diffs,
-    xticklabels=nums_tasks,
-    yticklabels=ls,
-    cmap="RdBu",
-    vmin=-0.04,
-    vmax=0.04,
-    annot=True,
-)
-
-# %%
-# df[(df["lengthscale"] == 0.1) & (df["num_tasks"] == 256)]
-# df["tuner"] = df["tuner"].astype("string")
-# df.groupby(["lengthscale", "num_tasks", "tuner"]).mean()
-
-df = df[(df["num_tasks"] == 16) & (df["lengthscale"] == 0.05)]
-df
-# %%
-
-a = df[df["tuner"] == TunerType.film]["cv_lik"].reset_index(drop=True)
-b = df[df["tuner"] == TunerType.naive]["cv_lik"].reset_index(drop=True)
-delta = b - a
-# df[df["tuner"] == TunerType.film]["cv_lik"].mean()
-
-# %%
-delta.std()
-# %%
-df["tuner"] = df["tuner"].astype("string")
-df.groupby(["lengthscale", "num_tasks", "tuner"]).mean()
-# %%
-
-records = []
-
-for l in [0.1, 0.2]:
-    s = replace(sim_spec)
-    s.data.lengthscale = l
-    exp_dir = get_exp_dir_sim(s)
-    _, best_model_path, _, _ = get_paths(exp_dir)
-    _, val_lik = load_weights(model, best_model_path, lik_only=True)
-
-    records.append(
-        {
-            "lengthscale": l,
-            "val_lik": val_lik,
-        }
-    )
-
-baselines = pd.DataFrame(records)
-baselines
 
 
 # %%
@@ -358,62 +277,91 @@ for ss in tqdm(simspecs):
 # %%
 e.save()
 e.load()
+
+
 # %%
-ls = [0.05, 0.1, 0.2]
-fig, axs = plt.subplots(1, len(ls), figsize=(12, 4))
+def gap_plots(e):
+    ls = [0.05, 0.1, 0.2]
+    fig, axs = plt.subplots(1, len(ls), figsize=(12, 4))
 
-c1 = "C0"
-c2 = "C1"
+    c1 = "C0"
+    c2 = "C1"
 
-for l, ax in zip(ls, axs):
-    means, stds, labels, colors = [], [], [], []
-    ax.set_title(f"0.25 $\\rightarrow$ {l}")
+    for l, ax in zip(ls, axs):
+        means, stds, labels, colors = [], [], [], []
+        ax.set_title(f"0.25 $\\rightarrow$ {l}")
 
-    if l != 0.05:
-        # Add 0-shot baseline:
-        means.append(float(e.at(l=l, num=0)["val_lik"]))
+        if l != 0.05:
+            # Add 0-shot baseline:
+            means.append(float(e.at(l=l, num=0)["val_lik"]))
+            stds.append(0)
+            labels.append("0 Shot")
+            colors.append("grey")
+
+        for num in [16, 64, 256]:
+            for tuner in [TunerType.naive, TunerType.film]:
+                liks = e.at(l, num, tuner)["val_lik"]
+                means.append(liks.mean())
+                stds.append(1.96 * liks.std())
+                labels.append(f"{tuner.name}_{num}")
+                colors.append(c1 if tuner == TunerType.naive else c2)
+
+        inf_df = e.at(l=l, num=float("inf"))
+
+        # Add infinite data baseline:
+        inf_lik = float(inf_df["val_lik"])
+        means.append(inf_lik)
         stds.append(0)
-        labels.append("0 Shot")
+        labels.append("naive_inf")
         colors.append("grey")
 
-    for num in [16, 64, 256]:
-        for tuner in [TunerType.naive, TunerType.film]:
-            liks = e.at(l, num, tuner)["val_lik"]
-            means.append(liks.mean())
-            stds.append(1.96 * liks.std())
-            labels.append(f"{tuner.name}_{num}")
-            colors.append(c1 if tuner == TunerType.naive else c2)
+        # Add true likelihood baseline:
+        true_lik = float(inf_df["true_val_lik"])
+        ymin, ymax = min(means) * 1.05, true_lik * 0.95
 
-    inf_df = e.at(l=l, num=float("inf"))
+        xmin, xmax = -1, len(labels)
+        bars = ax.bar(labels, means, yerr=stds)
 
-    # Add infinite data baseline:
-    inf_lik = float(inf_df["val_lik"])
-    means.append(inf_lik)
-    stds.append(0)
-    labels.append("naive_inf")
-    colors.append("grey")
+        for bar, color in zip(bars, colors):
+            bar.set_color(color)
 
-    # Add true likelihood baseline:
-    true_lik = float(inf_df["true_val_lik"])
-    ymin, ymax = min(means) * 1.05, true_lik * 0.95
+        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+        truth = ax.hlines(
+            true_lik, xmin, xmax, colors="black", linestyles="--", label="GP"
+        )
 
-    xmin, xmax = -1, len(labels)
-    bars = ax.bar(labels, means, yerr=stds)
+        naive_patch = mpatches.Patch(color=c1, label="Naive")
+        film_patch = mpatches.Patch(color=c2, label="FiLM")
 
-    for bar, color in zip(bars, colors):
-        bar.set_color(color)
+        ax.legend(handles=[truth, naive_patch, film_patch])
+    axs[0].set_ylabel("$\\log \\mathcal{L}$")
+    save("gaps")
+    plt.show()
 
-    ax.set_xticklabels(labels, rotation=45, ha="right")
-    ax.set_xlim(xmin, xmax)
-    ax.set_ylim(ymin, ymax)
-    truth = ax.hlines(true_lik, xmin, xmax, colors="black", linestyles="--", label="GP")
 
-    naive_patch = mpatches.Patch(color=c1, label="Naive")
-    film_patch = mpatches.Patch(color=c2, label="FiLM")
+def heatmap(e):
+    diffs = np.zeros((len(ls), len(nums_tasks)))
+    for i, l in enumerate(tqdm(ls)):
+        for j, num_tasks in enumerate(tqdm(nums_tasks)):
+            film = e.at(l=l, num=num_tasks, tuner=TunerType.film)["val_lik"].mean()
+            naive = e.at(l=l, num=num_tasks, tuner=TunerType.naive)["val_lik"].mean()
+            diffs[i, j] = film - naive
 
-    ax.legend(handles=[truth, naive_patch, film_patch])
+    sns.heatmap(
+        diffs,
+        xticklabels=nums_tasks,
+        yticklabels=ls,
+        cmap="RdBu",
+        vmin=-0.04,
+        vmax=0.04,
+        annot=True,
+    )
 
-    # %%
+    save("heatmap")
+    plt.show()
 
-    e.df[e.df["num_tasks"] == 0]
-    e.at(num=0)
+
+gap_plots(e)
+heatmap(e)
