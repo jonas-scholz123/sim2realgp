@@ -224,3 +224,11 @@ def visualise_2d(model, gen, *, path, config, predict):
 
     plt.savefig(path)
     plt.close()
+
+
+def save(name, fig=None):
+    path = f"./outputs/figs/{name}.pdf"
+    if fig == None:
+        plt.savefig(path, bbox_inches="tight")
+    else:
+        fig.savefig(path, bbox_inches="tight")
