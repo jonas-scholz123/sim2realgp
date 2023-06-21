@@ -27,7 +27,7 @@ config = {
     # "real_nums_tasks_train": [2**8, 2**10],
     "lengthscales_real": [0.1, 0.2],
     "noises_real": [0.0125, 0.025, 0.1, 0.2],
-    "seeds": list(range(10, 11)),
+    "seeds": list(range(11, 15)),
 }
 
 out = OutputSpec(
@@ -159,7 +159,7 @@ sim_data = DataSpec(
 real_data = replace(
     sim_data,
     inf_tasks=True,
-    num_tasks_val=2**6,
+    num_tasks_val=2**8,
 )
 
 sim_spec = SimRunSpec(
