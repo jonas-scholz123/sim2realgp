@@ -67,12 +67,12 @@ def evaluate(state, model, objective, gen):
         # Report numbers.
         vals = B.concat(*vals)
         gp_vals = B.concat(*gp_vals)
-        return (
-            state,
-            B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals)),
-            B.mean(gp_vals),
-        )
-        # return state, B.mean(vals), B.mean(gp_vals)
+        # return (
+        #    state,
+        #    B.mean(vals) - 1.96 * B.std(vals) / B.sqrt(len(vals)),
+        #    B.mean(gp_vals),
+        # )
+        return state, B.mean(vals), B.mean(gp_vals)
 
 
 def setup(s: DataSpec, device):

@@ -23,10 +23,11 @@ warnings.filterwarnings("ignore", category=ToDenseWarning)
 config = {
     "tuners": [TunerType.film, TunerType.naive],
     # "tuners": [TunerType.filmlinear],
-    "real_nums_tasks_train": [2**4, 2**6],
+    "real_nums_tasks_train": [2**4, 2**6, 2**8],
     # "real_nums_tasks_train": [2**8, 2**10],
     "lengthscales_real": [0.1, 0.2],
-    "seeds": list(range(10, 15)),
+    "noises_real": [0.01, 0.1],
+    "seeds": list(range(11, 20)),
 }
 
 out = OutputSpec(
@@ -157,9 +158,7 @@ sim_data = DataSpec(
 
 real_data = replace(
     sim_data,
-    num_tasks_train=None,
     inf_tasks=False,
-    lengthscale=None,
     num_tasks_val=2**6,
 )
 
@@ -173,7 +172,7 @@ sim_spec = SimRunSpec(
 )
 
 sim2real_spec = Sim2RealSpec(
-    device="mps",
+    device="cpu",
     tuner=None,
     out=out,
     sim=sim_data,

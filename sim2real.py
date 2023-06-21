@@ -91,7 +91,7 @@ def sim2real(spec: Sim2RealSpec):
 
     batches = list(gen_train.epoch())
 
-    tuner = get_tuner(tuner_type)(model, objective, torch.optim.Adam, spec)
+    tuner = get_tuner(spec.tuner)(model, objective, torch.optim.Adam, spec)
     state = B.create_random_state(torch.float32, seed=0)
 
     early_stopper = EarlyStopper(30)
@@ -190,8 +190,9 @@ def sim2real(spec: Sim2RealSpec):
         last_eval_epoch = i
 
 
-if __name__ == "__main__":
+def lengthscale_experiment():
     lengthscales = config["lengthscales_real"]
+    noises = config["noises_real"]
     nums_tasks = config["real_nums_tasks_train"]
     tuner_types = config["tuners"]
     seeds = config["seeds"]
@@ -223,5 +224,27 @@ if __name__ == "__main__":
                     spec.opt.lr = base_lr * multiplier
 
                     sim2real(spec)
+
+
+def noise_experiment():
+    noises = config["noises_real"]
+    nums_tasks = config["real_nums_tasks_train"]
+    tuner_types = config["tuners"]
+    seeds = config["seeds"]
+
+    for seed in seeds:
+        for noise in noises:
+            for num_tasks in nums_tasks:
+                for tuner_type in tuner_types:
+                    spec.real.train_seed = seed
+                    spec.real.noise = noise
+                    spec.real.num_tasks_train = num_tasks
+                    spec.tuner = tuner_type
+                    sim2real(spec)
+
+
+if __name__ == "__main__":
+    noise_experiment()
+
 
 # %%

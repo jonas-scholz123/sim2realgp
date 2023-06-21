@@ -63,36 +63,6 @@ def gen_simspecs(spec: SimRunSpec, ls) -> List[SimRunSpec]:
 
 
 # %%
-
-best_tuners = np.zeros((len(ls), len(nums_tasks)))
-best_liks = np.zeros((len(ls), len(nums_tasks)))
-for i, l in enumerate(tqdm(ls)):
-    for j, num_tasks in enumerate(tqdm(nums_tasks)):
-        best_lik = -float("inf")
-        best_tuner = None
-
-        for tuner in tuners:
-            state = B.create_random_state(torch.float32, seed=0)
-            spec.real.lengthscale = l
-            spec.real.num_tasks_train = num_tasks
-            spec.tuner = tuner
-            _, _, gen = setup(spec.real, spec.device)
-
-            sim_exp_dir, tuned_exp_dir = get_exp_dir_sim2real(spec)
-            train_plot_dir, best_model_path, _, model_dir = get_paths(tuned_exp_dir)
-            model, val_lik = load_weights(model, best_model_path)
-            model = model.to(spec.device)
-            # state, _, true_val_lik = evaluate(state, model, objective, gen())
-
-            if val_lik > best_lik:
-                best_lik = val_lik
-                best_tuner = tuner
-
-        best_tuners[i, j] = best_tuner.value
-        best_liks[i, j] = best_lik
-
-
-# %%
 @dataclass
 class Record:
     lengthscale: float
@@ -282,6 +252,7 @@ e.load()
 # %%
 def gap_plots(e):
     ls = [0.05, 0.1, 0.2]
+    nums = [16, 64, 256]
     fig, axs = plt.subplots(1, len(ls), figsize=(12, 4))
 
     c1 = "C0"
@@ -289,53 +260,84 @@ def gap_plots(e):
 
     for l, ax in zip(ls, axs):
         means, stds, labels, colors = [], [], [], []
-        ax.set_title(f"0.25 $\\rightarrow$ {l}")
+        ax.set_title(f"0.25 (sim) $\\rightarrow$ {l} (real)")
 
-        if l != 0.05:
-            # Add 0-shot baseline:
-            means.append(float(e.at(l=l, num=0)["val_lik"]))
-            stds.append(0)
-            labels.append("0 Shot")
-            colors.append("grey")
+        # if l != 0.05:
+        #    # Add 0-shot baseline:
+        #    means.append(float(e.at(l=l, num=0)["val_lik"]))
+        #    stds.append(0)
+        #    labels.append("0 Shot")
+        #    colors.append("grey")
 
-        for num in [16, 64, 256]:
-            for tuner in [TunerType.naive, TunerType.film]:
+        x1 = np.linspace(0, 4, 3)
+        x2 = x1 + 0.2
+        for x, color, tuner in zip(
+            [x1, x2], [c1, c2], [TunerType.naive, TunerType.film]
+        ):
+            means, stds, labels, colors = [], [], [], []
+            for num in nums:
                 liks = e.at(l, num, tuner)["val_lik"]
                 means.append(liks.mean())
-                stds.append(1.96 * liks.std())
+                stds.append(1.96 * liks.std() / np.sqrt(len(liks)))
                 labels.append(f"{tuner.name}_{num}")
                 colors.append(c1 if tuner == TunerType.naive else c2)
+            ax.errorbar(x, means, fmt=".", yerr=stds, ecolor=color, color=color)
 
         inf_df = e.at(l=l, num=float("inf"))
 
-        # Add infinite data baseline:
-        inf_lik = float(inf_df["val_lik"])
-        means.append(inf_lik)
-        stds.append(0)
-        labels.append("naive_inf")
-        colors.append("grey")
-
         # Add true likelihood baseline:
         true_lik = float(inf_df["true_val_lik"])
-        ymin, ymax = min(means) * 1.05, true_lik * 0.95
+        ymin, ymax = min(means), true_lik * 0.95
+        if l != 0.05:
+            zero_shot = float(e.at(l=l, num=0)["val_lik"])
+            ymin = 1.05 * min(ymin, zero_shot)
+            # ymin *= 1.05
+        else:
+            ymin *= 1.05
 
-        xmin, xmax = -1, len(labels)
-        bars = ax.bar(labels, means, yerr=stds)
+        xmin, xmax = x1.min() - 1, x2.max() + 1
+        # bars = ax.bar(labels, means, yerr=stds)
+        # bp = ax.boxplot(all_liks, patch_artist=True, whis=10000)
 
-        for bar, color in zip(bars, colors):
-            bar.set_color(color)
+        # for patch, color in zip(bp["boxes"], colors):
+        #    patch.set_facecolor(color)
 
-        ax.set_xticklabels(labels, rotation=45, ha="right")
+        # for marker, color in zip(markers, colors):
+        #    print(marker)
+        #    marker.set_color(color)
+
+        # for bar, color in zip(bars, colors):
+        #    bar.set_color(color)
+
+        # ax.set_xticklabels(labels, rotation=45, ha="right")
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         truth = ax.hlines(
             true_lik, xmin, xmax, colors="black", linestyles="--", label="GP"
         )
 
+        # Add infinite data baseline:
+        inf_lik = float(inf_df["val_lik"])
+        inf = ax.hlines(
+            inf_lik, xmin, xmax, colors="green", linestyles="--", label="$\\infty$ data"
+        )
+
         naive_patch = mpatches.Patch(color=c1, label="Naive")
         film_patch = mpatches.Patch(color=c2, label="FiLM")
 
-        ax.legend(handles=[truth, naive_patch, film_patch])
+        if l != 0.05:
+            # Add 0-shot baseline:
+            zero = ax.hlines(
+                zero_shot, xmin, xmax, colors="red", linestyles="--", label="0-shot"
+            )
+            ax.legend(handles=[truth, inf, zero, naive_patch, film_patch], loc=None)
+        else:
+            ax.legend(handles=[truth, inf, naive_patch, film_patch], loc="lower right")
+
+        ax.set_xticks((x1 + x2) / 2)
+        ax.set_xticklabels(nums)
+        ax.set_xlabel("Num Real Tasks")
+
     axs[0].set_ylabel("$\\log \\mathcal{L}$")
     save("gaps")
     plt.show()
@@ -364,4 +366,4 @@ def heatmap(e):
 
 
 gap_plots(e)
-heatmap(e)
+# heatmap(e)
