@@ -15,7 +15,9 @@ class Tuner(ABC):
         self.model = self.modify_model(initial_model)
         self.objective = objective
         self.opt = opt(self.model.parameters(), lr)
-        self.scheduler = torch.optim.ReduceLROnPlateau(self.opt, "max", factor=0.3)
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            self.opt, "max", factor=0.3
+        )
 
     @abstractmethod
     def modify_model(self, initial_model) -> nn.Module:
