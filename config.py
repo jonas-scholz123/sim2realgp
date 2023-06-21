@@ -23,7 +23,7 @@ warnings.filterwarnings("ignore", category=ToDenseWarning)
 config = {
     "tuners": [TunerType.film, TunerType.naive],
     # "tuners": [TunerType.filmlinear],
-    "real_nums_tasks_train": [2**4, 2**6, 2**8],
+    "real_nums_tasks_train": [2**10],
     # "real_nums_tasks_train": [2**8, 2**10],
     "lengthscales_real": [0.1, 0.2],
     "noises_real": [0.0125, 0.025, 0.1, 0.2],
