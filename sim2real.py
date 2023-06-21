@@ -151,6 +151,9 @@ def sim2real(spec: Sim2RealSpec):
         # The epoch is done. Now evaluate.
         state, val_lik, true_val_lik = evaluate(state, model, objective, gen_cv())
 
+        # reduce lr if wanted
+        tuner.scheduler_step(val_lik)
+
         measures = {
             "train_lik": train_lik,
             "val_lik": val_lik,
