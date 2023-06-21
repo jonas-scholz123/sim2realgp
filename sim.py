@@ -1,5 +1,6 @@
 # %%
 from functools import partial
+import os
 import warnings
 from tqdm import tqdm
 
@@ -21,6 +22,7 @@ from train import EarlyStopper, train, setup, evaluate
 from models.convgnp import construct_convgnp
 from plot import visualise_1d
 from dataclasses import asdict
+import keys
 
 from config import sim_spec as spec
 
@@ -71,6 +73,9 @@ model = construct_convgnp(
 )
 
 print(model)
+
+# Set this in case we're running on HPC where we can't run login command.
+os.environ["WANDB_API_KEY"] = keys.WANDB_API_KEY
 
 
 objective = partial(

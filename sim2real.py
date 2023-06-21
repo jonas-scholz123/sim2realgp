@@ -3,6 +3,7 @@ import torch
 import neuralprocesses.torch as nps
 from dataclasses import asdict
 import lab as B
+import os
 import wandb
 from tqdm import tqdm
 from config import config
@@ -19,6 +20,7 @@ from utils import (
     get_exp_dir_sim2real,
     should_eval,
 )
+import keys
 from models.convgnp import construct_convgnp
 from finetuners.get_tuner import get_tuner
 
@@ -66,6 +68,9 @@ def sim2real(spec: Sim2RealSpec):
         unet_resize_convs=spec.model.unet.resize_convs,
         unet_resize_conv_interp_method=spec.model.unet.resize_conv_interp_method,
     )
+
+    # Set this in case we're running on HPC where we can't run login command.
+    os.environ["WANDB_API_KEY"] = keys.WANDB_API_KEY
 
     objective = partial(
         nps.loglik,
