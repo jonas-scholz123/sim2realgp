@@ -237,14 +237,20 @@ def noise_experiment():
     tuner_types = config["tuners"]
     seeds = config["seeds"]
 
+    base_lr = spec.opt.lr
+    multiplier = 1
+
     for seed in seeds:
         for noise in noises:
             for num_tasks in nums_tasks:
                 for tuner_type in tuner_types:
+                    if tuner_type == TunerType.film:
+                        multiplier *= 50
                     spec.real.train_seed = seed
                     spec.real.noise = noise
                     spec.real.num_tasks_train = num_tasks
                     spec.tuner = tuner_type
+                    spec.opt.lr = base_lr * multiplier
                     sim2real(spec)
 
 

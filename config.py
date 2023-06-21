@@ -26,8 +26,8 @@ config = {
     "real_nums_tasks_train": [2**4, 2**6, 2**8],
     # "real_nums_tasks_train": [2**8, 2**10],
     "lengthscales_real": [0.1, 0.2],
-    "noises_real": [0.01, 0.1],
-    "seeds": list(range(11, 20)),
+    "noises_real": [0.0125, 0.025, 0.1, 0.2],
+    "seeds": list(range(10, 15)),
 }
 
 out = OutputSpec(
@@ -163,7 +163,7 @@ real_data = replace(
 )
 
 sim_spec = SimRunSpec(
-    device="mps",
+    device="cuda",
     out=out,
     data=sim_data,
     model=model,
@@ -172,7 +172,7 @@ sim_spec = SimRunSpec(
 )
 
 sim2real_spec = Sim2RealSpec(
-    device="cpu",
+    device="cuda",
     tuner=None,
     out=out,
     sim=sim_data,
