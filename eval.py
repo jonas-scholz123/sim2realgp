@@ -30,30 +30,35 @@ l = config["lengthscales_real"][0]
 num_tasks = config["real_nums_tasks_train"][0]
 tuner = config["tuners"][0]
 
-ls = [0.05, 0.1, 0.2]
-nums_tasks = [2**4, 2**6, 2**8, 2**10]
+# ls = [0.05, 0.1, 0.2]
+ls = [0.25]
+noises = [0.0125, 0.025, 0.1, 0.2]
+nums_tasks = [2**4, 2**6, 2**8]
 spec.real.num_tasks_val = 2**6
 tuners = [TunerType.film, TunerType.naive]
 seeds = range(10, 20)
 
 
-def modify_s2rspec(spec, l, num_tasks, tuner, seed) -> Sim2RealSpec:
+def modify_s2rspec(spec, l, noise, num_tasks, tuner, seed) -> Sim2RealSpec:
     spec = deepcopy(spec)
     spec.real.lengthscale = l
+    spec.real.noise = noise
     spec.real.num_tasks_train = num_tasks
     spec.tuner = tuner
     spec.real.train_seed = seed
     return spec
 
 
-def gen_s2rspecs(spec, ls, nums_tasks, tuners, seeds) -> List[Sim2RealSpec]:
+def gen_s2rspecs(spec, ls, noises, nums_tasks, tuners, seeds) -> List[Sim2RealSpec]:
     specs = []
-    for l, num_tasks, tuner, seed in product(ls, nums_tasks, tuners, seeds):
-        specs.append(modify_s2rspec(spec, l, num_tasks, tuner, seed))
+    for l, noise, num_tasks, tuner, seed in product(
+        ls, noises, nums_tasks, tuners, seeds
+    ):
+        specs.append(modify_s2rspec(spec, l, noise, num_tasks, tuner, seed))
     return specs
 
 
-def gen_simspecs(spec: SimRunSpec, ls) -> List[SimRunSpec]:
+def gen_simspecs(spec: SimRunSpec, ls, noises) -> List[SimRunSpec]:
     specs = []
     for l in ls:
         s = deepcopy(spec)
@@ -66,6 +71,7 @@ def gen_simspecs(spec: SimRunSpec, ls) -> List[SimRunSpec]:
 @dataclass
 class Record:
     lengthscale: float
+    noise: float
     num_tasks: int
     tuner: TunerType
     seed: int
@@ -74,7 +80,9 @@ class Record:
 
 
 class Evaluator:
-    def __init__(self, spec: Sim2RealSpec, val_tasks=2**6) -> None:
+    def __init__(
+        self, spec: Sim2RealSpec, val_tasks=2**6, path="./outputs/results.csv"
+    ) -> None:
         self.model = construct_convgnp(
             points_per_unit=spec.real.ppu,
             dim_x=spec.real.dim_x,
@@ -108,6 +116,7 @@ class Evaluator:
         self.df = pd.DataFrame(
             columns=[
                 "lengthscale",
+                "noise",
                 "num_tasks",
                 "tuner",
                 "seed",
@@ -119,7 +128,7 @@ class Evaluator:
         self.records = []
         self.device = spec.device
         self.val_tasks = val_tasks
-        self.path = "./outputs/results.csv"
+        self.path = path
 
     def _eval(self, path: str, gen):
         try:
@@ -143,6 +152,7 @@ class Evaluator:
             self._add_record(
                 Record(
                     spec.real.lengthscale,
+                    spec.real.noise,
                     spec.real.num_tasks_train,
                     spec.tuner,
                     spec.real.train_seed,
@@ -209,11 +219,13 @@ class Evaluator:
     def load(self):
         self.df = pd.read_csv(self.path)
 
-    def at(self, l=None, num=None, tuner=None):
+    def at(self, l=None, noise=None, num=None, tuner=None):
         df = self.df
 
         if l is not None:
             df = df[df["lengthscale"] == l]
+        if noise is not None:
+            df = df[df["noise"] == noise]
         if num is not None:
             df = df[df["num_tasks"] == num]
             if num == float("inf"):
@@ -225,23 +237,23 @@ class Evaluator:
         return df
 
 
-e = Evaluator(spec, 2**8)
-# e.load()
-specs = gen_s2rspecs(spec, ls, nums_tasks, tuners, seeds)
-simspecs = gen_simspecs(sim_spec, ls)
+# %%
+
+e = Evaluator(spec, 2**8, "./outputs/results_noise.csv")
+specs = gen_s2rspecs(spec, ls, noises, nums_tasks, tuners, seeds)
 
 for s in tqdm(specs):
     e.eval_s2r(s)
 
-    if (
-        s.tuner == TunerType.naive
-        and s.real.num_tasks_train == nums_tasks[0]
-        and s.real.train_seed == seeds[0]
-    ):
-        e.eval_baseline(s)
+    # if (
+    #    s.tuner == TunerType.naive
+    #    and s.real.num_tasks_train == nums_tasks[0]
+    #    and s.real.train_seed == seeds[0]
+    # ):
+    #    e.eval_baseline(s)
 
-for ss in tqdm(simspecs):
-    e.eval_sim(ss)
+# for ss in tqdm(simspecs):
+#    e.eval_sim(ss)
 
 
 # %%
@@ -365,5 +377,33 @@ def heatmap(e):
     plt.show()
 
 
-gap_plots(e)
+def heatmap_noise(e):
+    diffs = np.zeros((len(noises), len(nums_tasks)))
+    for i, noise in enumerate(tqdm(noises)):
+        for j, num_tasks in enumerate(tqdm(nums_tasks)):
+            film = e.at(noise=noise, num=num_tasks, tuner=TunerType.film)[
+                "val_lik"
+            ].mean()
+            naive = e.at(noise=noise, num=num_tasks, tuner=TunerType.naive)[
+                "val_lik"
+            ].mean()
+            diffs[i, j] = film - naive
+
+    sns.heatmap(
+        diffs,
+        xticklabels=nums_tasks,
+        yticklabels=noises,
+        cmap="RdBu",
+        vmin=-0.03,
+        vmax=0.03,
+        annot=True,
+    )
+
+    save("heatmap")
+    plt.show()
+
+
+heatmap_noise(e)
+
+# gap_plots(e)
 # heatmap(e)
