@@ -23,11 +23,11 @@ warnings.filterwarnings("ignore", category=ToDenseWarning)
 config = {
     "tuners": [TunerType.film, TunerType.naive],
     # "tuners": [TunerType.filmlinear],
-    "real_nums_tasks_train": [2**10],
-    # "real_nums_tasks_train": [2**8, 2**10],
+    # "real_nums_tasks_train": [2**10],
+    "real_nums_tasks_train": [2**4, 2**6, 2**8, 2**10, 2**12],
     "lengthscales_real": [0.1, 0.2],
     "noises_real": [0.0125, 0.025, 0.1, 0.2],
-    "seeds": list(range(11, 15)),
+    "seeds": list(range(10, 15)),
 }
 
 out = OutputSpec(
@@ -135,7 +135,7 @@ dirs = Directories(
 )
 
 opt = OptSpec(
-    num_epochs=500,
+    num_epochs=200,
     batch_size=16,
     lr=3e-4,
 )
@@ -158,7 +158,7 @@ sim_data = DataSpec(
 
 real_data = replace(
     sim_data,
-    inf_tasks=True,
+    inf_tasks=False,
     num_tasks_val=2**8,
 )
 
