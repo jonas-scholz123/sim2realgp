@@ -10,7 +10,7 @@
 
 #! sbatch directives begin here ###############################
 #! Name of the job:
-#SBATCH -J gpsim2real-sim
+#SBATCH -J gpsim2real-sim2real
 #! Which project should be charged (NB Wilkes2 projects end in '-GPU'):
 #SBATCH -A MLMI-JS2731-SL2-GPU
 #! How many whole nodes should be allocated?
@@ -68,7 +68,7 @@ conda activate sim2real
 #! Insert additional module load commands after this line if needed:
 
 #! Full path to application executable: 
-application="python sim.py"
+application="python sim2real.py"
 
 #! Work directory (i.e. where the job will run):
 workdir="$SLURM_SUBMIT_DIR"  # The value of SLURM_SUBMIT_DIR sets workdir to the directory
