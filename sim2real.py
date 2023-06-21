@@ -108,10 +108,12 @@ def sim2real(spec: Sim2RealSpec):
 
     if spec.out.wandb:
         spec_dir = asdict(spec)
+
         run = wandb.init(
             project="thesis",
             config=spec_dir,
-            name=f"tune {spec.sim.lengthscale} -> {spec.real.lengthscale}, {num_tasks} tasks",
+            name=f"""tune ({spec.sim.lengthscale}, {spec.sim.noise}) ->
+                ({spec.real.lengthscale}, {spec.real.noise}) {num_tasks} tasks""",
             reinit=True,
         )
 
@@ -119,14 +121,9 @@ def sim2real(spec: Sim2RealSpec):
 
     if spec.out.wandb:
         state, val_lik, true_val_lik = evaluate(state, tuner.model, objective, gen_cv())
-        state, train_lik, true_train_lik = evaluate(
-            state, tuner.model, objective, gen_train
-        )
 
         measures = {
-            "train_lik": train_lik,
             "val_lik": val_lik,
-            "true_train_lik": true_train_lik,
             "true_val_lik": true_val_lik,
             "epoch": 0,
         }
@@ -238,14 +235,14 @@ def noise_experiment():
     seeds = config["seeds"]
 
     base_lr = spec.opt.lr
-    multiplier = 1
 
     for seed in seeds:
         for noise in noises:
             for num_tasks in nums_tasks:
                 for tuner_type in tuner_types:
+                    multiplier = 1
                     if tuner_type == TunerType.film:
-                        multiplier *= 50
+                        multiplier *= 10
                     spec.real.train_seed = seed
                     spec.real.noise = noise
                     spec.real.num_tasks_train = num_tasks
