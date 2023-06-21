@@ -33,7 +33,7 @@ tuner = config["tuners"][0]
 # ls = [0.05, 0.1, 0.2]
 ls = [0.25]
 noises = [0.0125, 0.025, 0.1, 0.2]
-nums_tasks = [2**4, 2**6, 2**8]
+nums_tasks = [2**4, 2**6, 2**8, 2**10]
 spec.real.num_tasks_val = 2**6
 tuners = [TunerType.film, TunerType.naive]
 seeds = range(10, 20)
@@ -407,3 +407,5 @@ heatmap_noise(e)
 
 # gap_plots(e)
 # heatmap(e)
+
+# %%
