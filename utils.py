@@ -3,6 +3,7 @@ import lab as B
 import torch
 
 from runspec import Sim2RealSpec, SimRunSpec
+from config import sim2real_spec
 
 
 def ensure_exists(path):
@@ -36,7 +37,7 @@ def save_model(model, objective_val, epoch, spec, path):
 
 
 def load_weights(model, path, lik_only=False):
-    state = torch.load(path)
+    state = torch.load(path, map_location=sim2real_spec.device)
     val_lik = state["objective"]
     if lik_only:
         return None, val_lik
