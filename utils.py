@@ -60,7 +60,8 @@ def get_exp_dir_sim(s: SimRunSpec):
 
 def get_exp_dir_sim2real(s: Sim2RealSpec):
     base = get_exp_dir_base(s.model.model, s.model.arch, s.sim.lengthscale, s.sim.noise)
-    dataspec = f"l_{s.real.lengthscale:.3g}_noise_{s.real.noise:.3g}_{s.real.num_tasks_train}_tasks"
+    num_tasks = s.real.num_tasks_train if not s.real.inf_tasks else "inf"
+    dataspec = f"l_{s.real.lengthscale:.3g}_noise_{s.real.noise:.3g}_{num_tasks}_tasks"
     tune_dir = f"{base}/tuned/{dataspec}/{s.tuner}/seed_{s.real.train_seed}"
     sim_dir = f"{base}/sim"
     return sim_dir, tune_dir

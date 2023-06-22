@@ -33,7 +33,8 @@ tuner = config["tuners"][0]
 # ls = [0.05, 0.1, 0.2]
 ls = [0.25]
 noises = [0.0125, 0.025, 0.1, 0.2]
-nums_tasks = [2**4, 2**6, 2**8, 2**10]
+nums_tasks = [2**4, 2**6, 2**8, 2**10, "inf"]
+# nums_tasks = ["inf"]
 spec.real.num_tasks_val = 2**6
 tuners = [TunerType.film, TunerType.naive]
 seeds = range(10, 20)
@@ -43,7 +44,11 @@ def modify_s2rspec(spec, l, noise, num_tasks, tuner, seed) -> Sim2RealSpec:
     spec = deepcopy(spec)
     spec.real.lengthscale = l
     spec.real.noise = noise
-    spec.real.num_tasks_train = num_tasks
+    if num_tasks != "inf":
+        spec.real.num_tasks_train = num_tasks
+    else:
+        spec.real.num_tasks_train = 2**10
+        spec.real.inf_tasks = True
     spec.tuner = tuner
     spec.real.train_seed = seed
     return spec
@@ -148,12 +153,14 @@ class Evaluator:
 
         lik, true_lik = self._eval(best_model_path, gen)
 
+        num_tasks = spec.real.num_tasks_train if not spec.real.inf_tasks else np.inf
+
         if lik != -1:
             self._add_record(
                 Record(
                     spec.real.lengthscale,
                     spec.real.noise,
-                    spec.real.num_tasks_train,
+                    num_tasks,
                     spec.tuner,
                     spec.real.train_seed,
                     lik,
@@ -186,6 +193,7 @@ class Evaluator:
             self._add_record(
                 Record(
                     spec.real.lengthscale,
+                    spec.real.noise,
                     0,  # No data, i.e. 0 shot.
                     None,  # No tuner
                     spec.real.train_seed,
@@ -228,11 +236,9 @@ class Evaluator:
             df = df[df["noise"] == noise]
         if num is not None:
             df = df[df["num_tasks"] == num]
-            if num == float("inf"):
-                return df
-
         if tuner is not None:
-            df = df[df["tuner"] == str(tuner)]
+            # saving/loading turns obj into string. Catch both cases.
+            df = df[(df["tuner"] == str(tuner)) | (df["tuner"] == tuner)]
 
         return df
 
@@ -240,17 +246,20 @@ class Evaluator:
 # %%
 
 e = Evaluator(spec, 2**8, "./outputs/results_noise.csv")
+e.load()
+# %%
 specs = gen_s2rspecs(spec, ls, noises, nums_tasks, tuners, seeds)
 
 for s in tqdm(specs):
     e.eval_s2r(s)
 
-    # if (
-    #    s.tuner == TunerType.naive
-    #    and s.real.num_tasks_train == nums_tasks[0]
-    #    and s.real.train_seed == seeds[0]
-    # ):
-    #    e.eval_baseline(s)
+    if (
+        s.tuner == TunerType.naive
+        and s.real.num_tasks_train == nums_tasks[0]
+        and s.real.train_seed == seeds[0]
+    ):
+        e.eval_baseline(s)
+# %%
 
 # for ss in tqdm(simspecs):
 #    e.eval_sim(ss)
@@ -367,7 +376,7 @@ def heatmap(e):
         diffs,
         xticklabels=nums_tasks,
         yticklabels=ls,
-        cmap="RdBu",
+        cmap="seismic",
         vmin=-0.04,
         vmax=0.04,
         annot=True,
@@ -381,19 +390,21 @@ def heatmap_noise(e):
     diffs = np.zeros((len(noises), len(nums_tasks)))
     for i, noise in enumerate(tqdm(noises)):
         for j, num_tasks in enumerate(tqdm(nums_tasks)):
+            if num_tasks == "inf":
+                num_tasks = np.inf
             film = e.at(noise=noise, num=num_tasks, tuner=TunerType.film)[
                 "val_lik"
             ].mean()
             naive = e.at(noise=noise, num=num_tasks, tuner=TunerType.naive)[
                 "val_lik"
             ].mean()
-            diffs[i, j] = film - naive
+            diffs[i, j] = naive - film
 
     sns.heatmap(
         diffs,
         xticklabels=nums_tasks,
         yticklabels=noises,
-        cmap="RdBu",
+        cmap="seismic",
         vmin=-0.03,
         vmax=0.03,
         annot=True,
@@ -407,5 +418,5 @@ heatmap_noise(e)
 
 # gap_plots(e)
 # heatmap(e)
-
 # %%
+e.df[(e.df["num_tasks"] == np.inf) & (e.df["seed"] == 10) & (e.df["noise"] == 0.0125)]
