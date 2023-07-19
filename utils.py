@@ -48,7 +48,8 @@ def load_weights(model, path, lik_only=False):
 
 
 def get_exp_dir_base(model, arch, sim_l, noise):
-    return f"./outputs/{model}_{arch}/l_sim_{sim_l:.3g}/noise_{noise:.3g}"
+    l_str = float_str(sim_l)
+    return f"./outputs/{model}_{arch}/l_sim_{l_str}/noise_{noise:.3g}"
 
 
 def get_exp_dir_sim(s: SimRunSpec):
@@ -58,10 +59,20 @@ def get_exp_dir_sim(s: SimRunSpec):
     return f"{base}/sim"
 
 
+def float_str(x):
+    if isinstance(x, float):
+        return f"{x:.3g}"
+    elif isinstance(x, tuple):
+        return "-".join([float_str(el) for el in x])
+
+
 def get_exp_dir_sim2real(s: Sim2RealSpec):
     base = get_exp_dir_base(s.model.model, s.model.arch, s.sim.lengthscale, s.sim.noise)
     num_tasks = s.real.num_tasks_train if not s.real.inf_tasks else "inf"
-    dataspec = f"l_{s.real.lengthscale:.3g}_noise_{s.real.noise:.3g}_{num_tasks}_tasks"
+
+    l_str = float_str(s.real.lengthscale)
+    n_str = float_str(s.real.noise)
+    dataspec = f"l_{l_str}_noise_{n_str}_{num_tasks}_tasks"
     tune_dir = f"{base}/tuned/{dataspec}/{s.tuner}/seed_{s.real.train_seed}"
     sim_dir = f"{base}/sim"
     return sim_dir, tune_dir

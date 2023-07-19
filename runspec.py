@@ -11,7 +11,7 @@ class DataSpec:
     num_tasks_val: int
     inf_tasks: bool
     noise: float
-    kernel: stheno.kernel
+    kernel: callable
     lengthscale: float
     ppu: int
     dim_x: int

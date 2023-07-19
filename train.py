@@ -75,54 +75,69 @@ def evaluate(state, model, objective, gen):
         return state, B.mean(vals), B.mean(gp_vals)
 
 
+class MultilengthGPGenerator(nps.GPGenerator):
+    """
+    Wraps nps.GPGenerator to sample multiple lengthscales.
+    """
+
+    def __init__(self, s: DataSpec, device, seed):
+        self.s = s
+
+        if isinstance(s.lengthscale, float):
+            self.static_lengthscale = True
+            lengthscale = s.lengthscale
+
+        elif isinstance(s.lengthscale, tuple):
+            self.base_kernel = s.kernel
+            self.static_lengthscale = False
+            self.lengthscale_dist = nps.UniformContinuous(*s.lengthscale)
+            lengthscale = 1.0
+
+        kernel = s.kernel().stretch(lengthscale)
+
+        super().__init__(
+            torch.float32,
+            seed=seed,
+            noise=s.noise,
+            kernel=kernel,
+            num_context=self._num_context(lengthscale),
+            num_target=self._num_target(lengthscale),
+            num_tasks=s.num_tasks_train,
+            pred_logpdf=True,
+            pred_logpdf_diag=True,
+            device=device,
+        )
+
+    def _num_context(self, lengthscale: float):
+        num_context_min = int((1 / lengthscale) * self.s.dim_x)
+        num_context_max = int((10 / lengthscale) * self.s.dim_x)
+        return nps.UniformDiscrete(num_context_min, num_context_max)
+
+    def _num_target(self, lengthscale: float):
+        num_target = int((15 / lengthscale) * self.s.dim_x)
+        return nps.UniformDiscrete(num_target, num_target)
+
+    def generate_batch(self):
+        if not self.static_lengthscale:
+            # Sample a lengthscale
+            self.state, lengthscale = self.lengthscale_dist.sample(
+                self.state, self.float64
+            )
+
+            # Adjust GPGenerator
+            self.num_context = self._num_context(lengthscale)
+            self.num_target = self._num_target(lengthscale)
+            self.kernel = self.base_kernel().stretch(lengthscale)
+
+        return super().generate_batch()
+
+
 def setup(s: DataSpec, device):
     # Architecture choices specific for the GP experiments:
     # Other settings specific to the GP experiments:
-    kernel = s.kernel.stretch(s.lengthscale)
-
-    dim_x = s.dim_x
-    num_context_min = int((1 / s.lengthscale) * dim_x)
-    num_context_max = int((10 / s.lengthscale) * dim_x)
-    num_target = int((15 / s.lengthscale) * dim_x)
-
-    gen_train = nps.GPGenerator(
-        torch.float32,
-        seed=s.train_seed,
-        noise=s.noise,
-        kernel=kernel,
-        num_context=nps.UniformDiscrete(num_context_min, num_context_max),
-        num_target=nps.UniformDiscrete(num_target, num_target),
-        num_tasks=s.num_tasks_train,
-        pred_logpdf=True,
-        pred_logpdf_diag=True,
-        device=device,
-    )
-
-    gen_cv = lambda: nps.GPGenerator(
-        torch.float32,
-        seed=s.train_seed + 10,
-        noise=s.noise,
-        kernel=kernel,
-        num_context=nps.UniformDiscrete(num_context_min, num_context_max),
-        num_target=nps.UniformDiscrete(num_target, num_target),
-        num_tasks=s.num_tasks_val,
-        pred_logpdf=True,
-        pred_logpdf_diag=True,
-        device=device,
-    )
-
-    gen_eval = lambda: nps.GPGenerator(
-        torch.float32,
-        seed=30,
-        noise=s.noise,
-        kernel=kernel,
-        num_context=nps.UniformDiscrete(num_context_min, num_context_max),
-        num_target=nps.UniformDiscrete(num_target, num_target),
-        num_tasks=s.num_tasks_val,
-        pred_logpdf=True,
-        pred_logpdf_diag=True,
-        device=device,
-    )
+    gen_train = MultilengthGPGenerator(s, device, s.train_seed)
+    gen_cv = lambda: MultilengthGPGenerator(s, device, s.train_seed + 10)
+    gen_eval = lambda: MultilengthGPGenerator(s, device, 30)
     return gen_train, gen_cv, gen_eval
 
 
