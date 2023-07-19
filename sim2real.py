@@ -197,7 +197,6 @@ def sim2real(spec: Sim2RealSpec):
 
 def lengthscale_experiment():
     lengthscales = config["lengthscales_real"]
-    noises = config["noises_real"]
     nums_tasks = config["real_nums_tasks_train"]
     tuner_types = config["tuners"]
     seeds = config["seeds"]
@@ -255,7 +254,7 @@ def noise_experiment():
 
 
 if __name__ == "__main__":
-    noise_experiment()
+    lengthscale_experiment()
 
 
 # %%
