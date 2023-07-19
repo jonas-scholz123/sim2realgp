@@ -24,7 +24,7 @@ config = {
     "tuners": [TunerType.film, TunerType.naive],
     # "tuners": [TunerType.filmlinear],
     # "real_nums_tasks_train": [2**10],
-    "real_nums_tasks_train": [2**4, 2**6, 2**8, 2**10, 2**12],
+    "real_nums_tasks_train": [2**4, 2**6, 2**8],
     "lengthscales_real": [0.05, 0.1],
     "noises_real": [0.0125, 0.025, 0.1, 0.2],
     "seeds": list(range(10, 15)),
