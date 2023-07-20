@@ -80,7 +80,7 @@ class MultilengthGPGenerator(nps.GPGenerator):
     Wraps nps.GPGenerator to sample multiple lengthscales.
     """
 
-    def __init__(self, s: DataSpec, device, seed):
+    def __init__(self, s: DataSpec, num_tasks, device, seed):
         self.s = s
 
         if isinstance(s.lengthscale, float):
@@ -102,7 +102,7 @@ class MultilengthGPGenerator(nps.GPGenerator):
             kernel=kernel,
             num_context=self._num_context(lengthscale),
             num_target=self._num_target(lengthscale),
-            num_tasks=s.num_tasks_train,
+            num_tasks=num_tasks,
             pred_logpdf=True,
             pred_logpdf_diag=True,
             device=device,
@@ -135,9 +135,11 @@ class MultilengthGPGenerator(nps.GPGenerator):
 def setup(s: DataSpec, device):
     # Architecture choices specific for the GP experiments:
     # Other settings specific to the GP experiments:
-    gen_train = MultilengthGPGenerator(s, device, s.train_seed)
-    gen_cv = lambda: MultilengthGPGenerator(s, device, s.train_seed + 10)
-    gen_eval = lambda: MultilengthGPGenerator(s, device, 30)
+    gen_train = MultilengthGPGenerator(s, s.num_tasks_train, device, s.train_seed)
+    gen_cv = lambda: MultilengthGPGenerator(
+        s, s.num_tasks_val, device, s.train_seed + 10
+    )
+    gen_eval = lambda: MultilengthGPGenerator(s, s.num_tasks_val, device, 30)
     return gen_train, gen_cv, gen_eval
 
 
