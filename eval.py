@@ -33,7 +33,7 @@ num_samples = 2**12
 
 spec.real.num_tasks_val = num_samples
 
-experiment = "lengthscale"
+experiment = "single_scale_upwards"
 
 if experiment == "multiscale":
     ls = [0.05, 0.1, 0.2]
