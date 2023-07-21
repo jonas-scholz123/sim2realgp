@@ -79,8 +79,6 @@ def sim2real(spec: Sim2RealSpec):
     )
 
     model = model.to(spec.device)
-    # %%
-
     best_pretrained_path = get_paths(sim_exp_dir)[1]
     print(f"Loading best model from {best_pretrained_path}")
     model, _ = load_weights(model, best_pretrained_path)
@@ -119,9 +117,9 @@ def sim2real(spec: Sim2RealSpec):
 
     print(f"Tuning using {tuner}")
 
-    if spec.out.wandb:
-        state, val_lik, true_val_lik = evaluate(state, tuner.model, objective, gen_cv())
+    state, val_lik, true_val_lik = evaluate(state, tuner.model, objective, gen_cv())
 
+    if spec.out.wandb:
         measures = {
             "val_lik": val_lik,
             "true_val_lik": true_val_lik,
@@ -129,7 +127,8 @@ def sim2real(spec: Sim2RealSpec):
         }
         run.log(measures)
 
-    best_eval_lik = -float("inf")
+    best_eval_lik = val_lik
+    save_model(model, val_lik, 0, spec, best_model_path)
 
     pbar = tqdm(range(1, spec.opt.num_epochs + 1))
     last_eval_epoch = 0

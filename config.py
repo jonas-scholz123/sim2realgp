@@ -166,7 +166,7 @@ real_data = replace(
 )
 
 sim_spec = SimRunSpec(
-    device="cuda",
+    device="cpu",
     out=out,
     data=sim_data,
     model=model,
@@ -175,7 +175,7 @@ sim_spec = SimRunSpec(
 )
 
 sim2real_spec = Sim2RealSpec(
-    device="cuda",
+    device="cpu",
     tuner=None,
     out=out,
     sim=sim_data,
