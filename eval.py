@@ -30,12 +30,28 @@ l = config["lengthscales_real"][0]
 num_tasks = config["real_nums_tasks_train"][0]
 tuner = config["tuners"][0]
 
-# ls = [0.05, 0.1, 0.2]
-ls = [0.25]
-noises = [0.0125, 0.025, 0.1, 0.2]
-nums_tasks = [2**4, 2**6, 2**8, 2**10, "inf"]
-# nums_tasks = ["inf"]
-spec.real.num_tasks_val = 2**6
+spec.real.num_tasks_val = 2**10
+
+experiment = "multiscale"
+
+if experiment == "multiscale":
+    ls = [0.05, 0.1, 0.2]
+    noises = [0.05]
+    nums_tasks = [2**4, 2**6, 2**8, "inf"]
+    spec.sim.lengthscale = (0.25, 0.5)
+    path = "./outputs/results_multiscale.csv"
+elif experiment == "lengthscale":
+    spec.sim.lengthscale = 0.25
+    ls = [0.05, 0.1, 0.2]
+    noises = [0.05]
+    nums_tasks = [2**4, 2**6, 2**8, "inf"]
+    path = "./outputs/results.csv"
+elif experiment == "noise":
+    spec.sim.lengthscale = 0.25
+    ls = [0.25]
+    noises = [0.0125, 0.025, 0.1, 0.2]
+    nums_tasks = [2**4, 2**6, 2**8, 2**10, "inf"]
+    path = "./outputs/results_noise.csv"
 tuners = [TunerType.film, TunerType.naive]
 seeds = range(10, 20)
 
@@ -213,7 +229,15 @@ class Evaluator:
 
         if lik != -1:
             self._add_record(
-                Record(spec.data.lengthscale, float("inf"), None, 10, lik, true_lik)
+                Record(
+                    spec.data.lengthscale,
+                    spec.data.noise,
+                    float("inf"),
+                    None,
+                    10,
+                    lik,
+                    true_lik,
+                )
             )
         return lik, true_lik
 
@@ -244,9 +268,8 @@ class Evaluator:
 
 
 # %%
-
-e = Evaluator(spec, 2**8, "./outputs/results_noise.csv")
-e.load()
+e = Evaluator(spec, 2**10, path)
+# e.load()
 # %%
 specs = gen_s2rspecs(spec, ls, noises, nums_tasks, tuners, seeds)
 
@@ -259,29 +282,31 @@ for s in tqdm(specs):
         and s.real.train_seed == seeds[0]
     ):
         e.eval_baseline(s)
-# %%
 
-# for ss in tqdm(simspecs):
-#    e.eval_sim(ss)
+simspecs = gen_simspecs(sim_spec, ls, noises)
+for ss in tqdm(simspecs):
+    e.eval_sim(ss)
 
 
 # %%
 e.save()
 e.load()
+e.df
 
 
 # %%
-def gap_plots(e):
-    ls = [0.05, 0.1, 0.2]
-    nums = [16, 64, 256]
+def gap_plots(e, name=None):
     fig, axs = plt.subplots(1, len(ls), figsize=(12, 4))
 
     c1 = "C0"
     c2 = "C1"
 
+    # ignore inf entry
+    nums = nums_tasks[:-1]
+
     for l, ax in zip(ls, axs):
         means, stds, labels, colors = [], [], [], []
-        ax.set_title(f"0.25 (sim) $\\rightarrow$ {l} (real)")
+        ax.set_title(f"{spec.sim.lengthscale} (sim) $\\rightarrow$ {l} (real)")
 
         # if l != 0.05:
         #    # Add 0-shot baseline:
@@ -290,14 +315,14 @@ def gap_plots(e):
         #    labels.append("0 Shot")
         #    colors.append("grey")
 
-        x1 = np.linspace(0, 4, 3)
+        x1 = np.linspace(0, 4, len(nums))
         x2 = x1 + 0.2
         for x, color, tuner in zip(
             [x1, x2], [c1, c2], [TunerType.naive, TunerType.film]
         ):
             means, stds, labels, colors = [], [], [], []
             for num in nums:
-                liks = e.at(l, num, tuner)["val_lik"]
+                liks = e.at(l, 0.05, num, tuner)["val_lik"]
                 means.append(liks.mean())
                 stds.append(1.96 * liks.std() / np.sqrt(len(liks)))
                 labels.append(f"{tuner.name}_{num}")
@@ -360,11 +385,12 @@ def gap_plots(e):
         ax.set_xlabel("Num Real Tasks")
 
     axs[0].set_ylabel("$\\log \\mathcal{L}$")
-    save("gaps")
+    if name is not None:
+        save(name)
     plt.show()
 
 
-def heatmap(e):
+def heatmap(e, name=None):
     diffs = np.zeros((len(ls), len(nums_tasks)))
     for i, l in enumerate(tqdm(ls)):
         for j, num_tasks in enumerate(tqdm(nums_tasks)):
@@ -377,16 +403,17 @@ def heatmap(e):
         xticklabels=nums_tasks,
         yticklabels=ls,
         cmap="seismic",
-        vmin=-0.04,
-        vmax=0.04,
+        vmin=-0.075,
+        vmax=0.075,
         annot=True,
     )
 
-    save("heatmap")
+    if name is not None:
+        save(name)
     plt.show()
 
 
-def heatmap_noise(e):
+def heatmap_noise(e, name=None):
     diffs = np.zeros((len(noises), len(nums_tasks)))
     for i, noise in enumerate(tqdm(noises)):
         for j, num_tasks in enumerate(tqdm(nums_tasks)):
@@ -410,13 +437,16 @@ def heatmap_noise(e):
         annot=True,
     )
 
-    save("heatmap")
+    if name is not None:
+        save(name)
     plt.show()
 
 
-heatmap_noise(e)
+# heatmap_noise(e)
 
-# gap_plots(e)
-# heatmap(e)
+gap_plots(e)
+# heatmap(e, "heatmap_multiscale")
 # %%
 e.df[(e.df["num_tasks"] == np.inf) & (e.df["seed"] == 10) & (e.df["noise"] == 0.0125)]
+# %%
+e.at(l=0.05)
