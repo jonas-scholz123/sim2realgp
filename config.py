@@ -24,10 +24,10 @@ config = {
     "tuners": [TunerType.film, TunerType.naive],
     # "tuners": [TunerType.filmlinear],
     # "real_nums_tasks_train": [2**10],
-    "real_nums_tasks_train": [2**4, 2**6, 2**8],
+    "real_nums_tasks_train": [2**4, 2**6],
     "lengthscales_real": [0.25, 0.5, 1.0],
     "noises_real": [0.0125, 0.025, 0.1, 0.2],
-    "seeds": list(range(16, 20)),
+    "seeds": list(range(10, 20)),
 }
 
 out = OutputSpec(
@@ -137,7 +137,7 @@ dirs = Directories(
 opt = OptSpec(
     num_epochs=200,
     batch_size=16,
-    lr=3e-4,
+    lr=1e-4,
 )
 
 
