@@ -33,7 +33,7 @@ num_samples = 2**12
 
 spec.real.num_tasks_val = num_samples
 
-experiment = "multiscale"
+experiment = "lengthscale"
 
 if experiment == "multiscale":
     ls = [0.05, 0.1, 0.2]
@@ -41,18 +41,27 @@ if experiment == "multiscale":
     nums_tasks = [2**4, 2**6, 2**8, "inf"]
     spec.sim.lengthscale = (0.25, 0.5)
     path = "./outputs/results_multiscale.csv"
+    gap_name = "gap_multiscale"
 elif experiment == "lengthscale":
     spec.sim.lengthscale = 0.25
     ls = [0.05, 0.1, 0.2]
     noises = [0.05]
     nums_tasks = [2**4, 2**6, 2**8, "inf"]
     path = "./outputs/results_singlescale.csv"
+    gap_name = "gap_singlescale"
 elif experiment == "noise":
     spec.sim.lengthscale = 0.25
     ls = [0.25]
     noises = [0.0125, 0.025, 0.1, 0.2]
     nums_tasks = [2**4, 2**6, 2**8, 2**10, "inf"]
     path = "./outputs/results_noise.csv"
+elif experiment == "single_scale_upwards":
+    spec.sim.lengthscale = 0.2
+    ls = [0.25, 0.5, 1.0]
+    noises = [0.05]
+    nums_tasks = [2**4, 2**6, 2**8, "inf"]
+    path = "./outputs/results_singlescale_upwards.csv"
+    gap_name = "gap_singlescale_upwards"
 tuners = [TunerType.film, TunerType.naive]
 seeds = range(10, 20)
 
@@ -379,7 +388,9 @@ def gap_plots(e, name=None):
             zero = ax.hlines(
                 zero_shot, xmin, xmax, colors="red", linestyles="--", label="0-shot"
             )
-            ax.legend(handles=[truth, inf, zero, naive_patch, film_patch], loc=None)
+            ax.legend(
+                handles=[truth, inf, zero, naive_patch, film_patch], loc="lower right"
+            )
         else:
             ax.legend(handles=[truth, inf, naive_patch, film_patch], loc="lower right")
 
@@ -448,7 +459,7 @@ def heatmap_noise(e, name=None):
 # heatmap_noise(e)
 
 e.load()
-gap_plots(e)
+gap_plots(e, name=gap_name)
 # heatmap(e, "heatmap_multiscale")
 # %%
 e.df[(e.df["num_tasks"] == np.inf) & (e.df["seed"] == 10) & (e.df["noise"] == 0.0125)]
