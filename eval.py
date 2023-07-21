@@ -32,7 +32,7 @@ tuner = config["tuners"][0]
 
 spec.real.num_tasks_val = 2**10
 
-experiment = "multiscale"
+experiment = "lengthscale"
 
 if experiment == "multiscale":
     ls = [0.05, 0.1, 0.2]
