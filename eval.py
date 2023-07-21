@@ -29,10 +29,11 @@ import lab as B
 l = config["lengthscales_real"][0]
 num_tasks = config["real_nums_tasks_train"][0]
 tuner = config["tuners"][0]
+num_samples = 2**12
 
-spec.real.num_tasks_val = 2**10
+spec.real.num_tasks_val = num_samples
 
-experiment = "lengthscale"
+experiment = "multiscale"
 
 if experiment == "multiscale":
     ls = [0.05, 0.1, 0.2]
@@ -45,7 +46,7 @@ elif experiment == "lengthscale":
     ls = [0.05, 0.1, 0.2]
     noises = [0.05]
     nums_tasks = [2**4, 2**6, 2**8, "inf"]
-    path = "./outputs/results.csv"
+    path = "./outputs/results_singlescale.csv"
 elif experiment == "noise":
     spec.sim.lengthscale = 0.25
     ls = [0.25]
@@ -159,6 +160,7 @@ class Evaluator:
             state, val_lik, true_val_lik = evaluate(state, model, self.objective, gen())
             return val_lik, true_val_lik
         except FileNotFoundError as e:
+            print(e)
             return -1, -1
 
     def eval_s2r(self, spec: Sim2RealSpec):
@@ -268,8 +270,7 @@ class Evaluator:
 
 
 # %%
-e = Evaluator(spec, 2**10, path)
-# e.load()
+e = Evaluator(spec, num_samples, path)
 # %%
 specs = gen_s2rspecs(spec, ls, noises, nums_tasks, tuners, seeds)
 
@@ -282,7 +283,7 @@ for s in tqdm(specs):
         and s.real.train_seed == seeds[0]
     ):
         e.eval_baseline(s)
-
+# %%
 simspecs = gen_simspecs(sim_spec, ls, noises)
 for ss in tqdm(simspecs):
     e.eval_sim(ss)
@@ -323,6 +324,7 @@ def gap_plots(e, name=None):
             means, stds, labels, colors = [], [], [], []
             for num in nums:
                 liks = e.at(l, 0.05, num, tuner)["val_lik"]
+                print(l, liks)
                 means.append(liks.mean())
                 stds.append(1.96 * liks.std() / np.sqrt(len(liks)))
                 labels.append(f"{tuner.name}_{num}")
@@ -330,6 +332,7 @@ def gap_plots(e, name=None):
             ax.errorbar(x, means, fmt=".", yerr=stds, ecolor=color, color=color)
 
         inf_df = e.at(l=l, num=float("inf"))
+        # print(inf_df)
 
         # Add true likelihood baseline:
         true_lik = float(inf_df["true_val_lik"])
@@ -444,9 +447,12 @@ def heatmap_noise(e, name=None):
 
 # heatmap_noise(e)
 
+e.load()
 gap_plots(e)
 # heatmap(e, "heatmap_multiscale")
 # %%
 e.df[(e.df["num_tasks"] == np.inf) & (e.df["seed"] == 10) & (e.df["noise"] == 0.0125)]
 # %%
-e.at(l=0.05)
+e.at(l=0.1)
+# %%
+e.at(num=np.inf)
