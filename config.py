@@ -27,8 +27,7 @@ config = {
     "real_nums_tasks_train": [2**10],
     "lengthscales_real": [0.4],
     "noises_real": [0.0125, 0.025, 0.1, 0.2],
-    # "seeds": list(range(10, 15)),
-    "seeds": [10],
+    "seeds": list(range(10, 15)),
 }
 
 out = OutputSpec(
