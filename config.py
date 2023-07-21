@@ -24,10 +24,10 @@ config = {
     "tuners": [TunerType.film, TunerType.naive],
     # "tuners": [TunerType.filmlinear],
     # "real_nums_tasks_train": [2**10],
-    "real_nums_tasks_train": [2**10],
-    "lengthscales_real": [0.4],
+    "real_nums_tasks_train": [2**4, 2**6, 2**8],
+    "lengthscales_real": [0.25, 0.5, 1.0],
     "noises_real": [0.0125, 0.025, 0.1, 0.2],
-    "seeds": list(range(10, 15)),
+    "seeds": list(range(16, 20)),
 }
 
 out = OutputSpec(
@@ -148,7 +148,7 @@ sim_data = DataSpec(
     inf_tasks=True,
     noise=0.05,
     kernel=stheno.EQ,
-    lengthscale=1.0,
+    lengthscale=0.2,
     # lengthscale=(0.12, 0.2),
     # lengthscale=(0.25, 0.5),
     # lengthscale=(0.05, 0.2),
